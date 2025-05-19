@@ -9,6 +9,7 @@ import { Loader2, ClipboardCopy } from 'lucide-react';
 import { Badge } from '~/components/ui/badge';
 import { toast } from 'sonner';
 import { useSession } from 'next-auth/react';
+import { Avatar, AvatarImage, AvatarFallback } from '~/components/ui/avatar';
 
 // Import component modules
 import { WaitingRoom } from './waiting-room';
@@ -116,16 +117,35 @@ export function MultiplayerContent({ username }: MultiplayerContentProps) {
       toast.error('Authentication error');
       return;
     }
-    // Create a modified joinRoom function to pass the user's image
+    
+    // Skip the joinRoom function as it has issues with session data
+    // and directly emit to socket with image from session
     const userImage = session.user.image || undefined;
-    state.socket?.emit('join_room', {
+    
+    if (!state.socket) {
+      toast.error('Not connected to server');
+      return;
+    }
+    
+    dispatch({ type: 'SET_LOADING', payload: true });
+    
+    // Generate a random player ID if none exists
+    const playerId = state.playerId || `player_${Date.now()}`;
+    
+    // Connect directly to server
+    state.socket.emit('join_room', {
       roomId: undefined, // No room ID for creating a new room
-      playerId: state.playerId || `player_${Date.now()}`,
+      playerId,
       username,
       userId: session.user.id,
       isAdmin: true, // Admin for new room
       image: userImage, // Pass image from session
     });
+    
+    // Save player ID
+    if (!state.playerId) {
+      dispatch({ type: 'SET_PLAYER_ID', payload: playerId });
+    }
   };
   
   // Handle joining an existing room
@@ -140,16 +160,34 @@ export function MultiplayerContent({ username }: MultiplayerContentProps) {
       return;
     }
     
-    // Join the room with image
+    // Skip the joinRoom function as it has issues with session data
+    // and directly emit to socket with image from session
     const userImage = session.user.image || undefined;
-    state.socket?.emit('join_room', {
+    
+    if (!state.socket) {
+      toast.error('Not connected to server');
+      return;
+    }
+    
+    dispatch({ type: 'SET_LOADING', payload: true });
+    
+    // Generate a random player ID if none exists
+    const playerId = state.playerId || `player_${Date.now()}`;
+    
+    // Connect directly to server
+    state.socket.emit('join_room', {
       roomId: joinRoomId,
-      playerId: state.playerId || `player_${Date.now()}`,
+      playerId,
       username,
       userId: session.user.id,
       isAdmin: false,
       image: userImage, // Pass image from session
     });
+    
+    // Save player ID
+    if (!state.playerId) {
+      dispatch({ type: 'SET_PLAYER_ID', payload: playerId });
+    }
   };
   
   // Copy room ID to clipboard
@@ -290,6 +328,25 @@ export function MultiplayerContent({ username }: MultiplayerContentProps) {
           </div>
         )}
       </div>
+      
+      {/* User Profile Display - only show when not in a room */}
+      {session?.user && !state.roomId && (
+        <div className="flex items-center justify-between rounded-lg border bg-card p-3 shadow-sm">
+          <div className="flex items-center gap-2">
+            <Avatar>
+              <AvatarImage src={session.user.image ?? undefined} alt={session.user.name ?? "User"} />
+              <AvatarFallback>{session.user.name?.substring(0, 2) || "U"}</AvatarFallback>
+            </Avatar>
+            <div>
+              <p className="text-sm font-medium">{session.user.name}</p>
+              <p className="text-xs text-muted-foreground">Playing as: <span className="font-semibold">{username}</span></p>
+            </div>
+          </div>
+          <Badge variant="outline" className="bg-blue-50/50 dark:bg-blue-900/20">
+            {state.isConnected ? 'Connected' : 'Disconnected'}
+          </Badge>
+        </div>
+      )}
       
       {/* Main Content */}
       <div className="rounded-lg border bg-card shadow">

@@ -352,17 +352,13 @@ export function MultiplayerProvider({ children }: { children: ReactNode }) {
     
     console.log('Joining room', roomId || 'new room', 'as', username);
     
-    // Get user profile image from sessionStorage or localStorage if available
+    // Get user session data from the window object if available
     let userImage;
     if (typeof window !== 'undefined') {
-      try {
-        const sessionData = sessionStorage.getItem('user-session') || localStorage.getItem('user-session');
-        if (sessionData) {
-          const userData = JSON.parse(sessionData);
-          userImage = userData?.user?.image;
-        }
-      } catch (e) {
-        console.error('Error accessing session data:', e);
+      // This session data will be directly passed through from the multiplayer-content component
+      // which has access to the next-auth session
+      if (window?.__NEXT_DATA__?.props?.pageProps?.session?.user?.image) {
+        userImage = window.__NEXT_DATA__.props.pageProps.session.user.image;
       }
     }
     

@@ -4,6 +4,7 @@ import { Badge } from '~/components/ui/badge';
 import { TimerIcon, CrownIcon } from 'lucide-react';
 import { cn } from '~/lib/utils';
 import { Avatar, AvatarImage, AvatarFallback } from '~/components/ui/avatar';
+import { useSession } from 'next-auth/react';
 
 // Define types to match multiplayer-context.tsx
 type GameRoom = {
@@ -59,6 +60,7 @@ export function GameBoard({
   onLeaveGame
 }: GameBoardProps) {
   const { currentDestination, options, players } = room;
+  const { data: session } = useSession();
   
   // If no destination or options data, show loading state
   if (!currentDestination || !Array.isArray(options) || options.length === 0) {
@@ -75,7 +77,7 @@ export function GameBoard({
   const otherPlayers = players.filter((p) => p.id !== playerId);
   
   return (
-    <div className="w-full max-w-md">
+    <div className="w-full max-w-md p-4">
       {/* Scoreboard */}
       <div className="mb-6 rounded-lg bg-blue-50/70 p-3 dark:bg-blue-900/20">
         <h3 className="mb-2 text-sm font-medium text-muted-foreground">Scoreboard</h3>
@@ -85,13 +87,10 @@ export function GameBoard({
             <div className="flex items-center gap-2">
               <div className="relative">
                 <Avatar className={currentPlayer?.isAdmin ? "ring-2 ring-yellow-400 dark:ring-yellow-500" : ""}>
-                  {currentPlayer?.image ? (
-                    <AvatarImage src={currentPlayer.image} alt={currentPlayer?.username || "You"} />
-                  ) : (
-                    <AvatarFallback className="bg-blue-200 text-blue-700 dark:bg-blue-800 dark:text-blue-200">
-                      {currentPlayer?.username.charAt(0).toUpperCase()}
-                    </AvatarFallback>
-                  )}
+                  <AvatarImage src={session?.user?.image ?? currentPlayer?.image} alt={currentPlayer?.username || "You"} />
+                  <AvatarFallback className="bg-blue-200 text-blue-700 dark:bg-blue-800 dark:text-blue-200">
+                    {currentPlayer?.username.charAt(0).toUpperCase()}
+                  </AvatarFallback>
                 </Avatar>
                 {currentPlayer?.isAdmin && (
                   <div className="absolute -top-1 -right-1">
@@ -113,13 +112,10 @@ export function GameBoard({
               <div className="flex items-center gap-2">
                 <div className="relative">
                   <Avatar className={player.isAdmin ? "ring-2 ring-yellow-400 dark:ring-yellow-500" : ""}>
-                    {player.image ? (
-                      <AvatarImage src={player.image} alt={player.username} />
-                    ) : (
-                      <AvatarFallback className="bg-gray-200 text-gray-700 dark:bg-gray-700 dark:text-gray-200">
-                        {player.username.charAt(0).toUpperCase()}
-                      </AvatarFallback>
-                    )}
+                    <AvatarImage src={player.image ?? undefined} alt={player.username} />
+                    <AvatarFallback className="bg-gray-200 text-gray-700 dark:bg-gray-700 dark:text-gray-200">
+                      {player.username.charAt(0).toUpperCase()}
+                    </AvatarFallback>
                   </Avatar>
                   {player.isAdmin && (
                     <div className="absolute -top-1 -right-1">

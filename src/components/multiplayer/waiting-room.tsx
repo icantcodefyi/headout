@@ -26,7 +26,7 @@ type Player = {
   score: number;
   correctAnswers: number;
   wrongAnswers: number;
-  image?: string; // Add image property to Player type
+  image?: string;
 };
 
 interface WaitingRoomProps {
@@ -97,6 +97,9 @@ export function WaitingRoom({
             // First player is considered the admin (index 0)
             const isPlayerAdmin = player.isAdmin || player.id === players[0]?.id;
             
+            // Use the current user's session image if this is the current player
+            const playerImage = isCurrentPlayer && session?.user?.image ? session.user.image : player.image;
+            
             return (
               <Card key={player.id} className={`rounded-lg border p-4 transition-all ${
                 isCurrentPlayer 
@@ -106,16 +109,13 @@ export function WaitingRoom({
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-2">
                     <Avatar className={isPlayerAdmin ? "ring-2 ring-yellow-400 dark:ring-yellow-500" : ""}>
-                      {player.image ? (
-                        <AvatarImage src={player.image} alt={player.username} />
-                      ) : (
-                        <AvatarFallback className={isPlayerAdmin 
-                          ? "bg-yellow-100 text-yellow-600 dark:bg-yellow-900/50 dark:text-yellow-300"
-                          : "bg-green-100 text-green-600 dark:bg-green-900/50 dark:text-green-300"
-                        }>
-                          {player.username.charAt(0).toUpperCase()}
-                        </AvatarFallback>
-                      )}
+                      <AvatarImage src={playerImage ?? undefined} alt={player.username} />
+                      <AvatarFallback className={isPlayerAdmin 
+                        ? "bg-yellow-100 text-yellow-600 dark:bg-yellow-900/50 dark:text-yellow-300"
+                        : "bg-green-100 text-green-600 dark:bg-green-900/50 dark:text-green-300"
+                      }>
+                        {player.username.charAt(0).toUpperCase()}
+                      </AvatarFallback>
                     </Avatar>
                     <div>
                       <span className="font-medium">
@@ -142,7 +142,7 @@ export function WaitingRoom({
           {players.length < 8 && (
             <div className="flex h-20 flex-col items-center justify-center rounded-lg border border-dashed text-muted-foreground dark:border-gray-700">
               <UserIcon className="h-4 w-4 mb-1" />
-              <span className="text-sm">Waiting for more players to join...</span>
+              <span className="text-sm">Available spots for more players</span>
             </div>
           )}
         </div>
@@ -175,7 +175,7 @@ export function WaitingRoom({
             ) : (
               <div className="rounded-md bg-amber-50 p-3 text-center text-sm text-amber-800 dark:bg-amber-900/30 dark:text-amber-200">
                 {players.length < 2 ? 
-                  "Waiting for more players to join..." : 
+                  "Need at least 2 players to start the game" : 
                   "Waiting for all players to ready up"}
               </div>
             )}
