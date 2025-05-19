@@ -1,8 +1,0 @@
-[phases.setup]
-nixPkgs = ["openssl_3_0", "bun", "nodejs-18_x"]
-
-[phases.build]
-cmds = ["npm run build", "npm run postinstall"]
-
-[start]
-cmd = "npm run start"
