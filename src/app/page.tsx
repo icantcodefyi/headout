@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useCallback, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import Image from 'next/image';
 import { api } from '~/trpc/react';
@@ -16,46 +16,66 @@ import { signIn, useSession } from 'next-auth/react';
 import { Confetti } from '~/components/confetti';
 import { Badge } from '~/components/ui/badge';
 import { Avatar, AvatarFallback, AvatarImage } from '~/components/ui/avatar';
-import { Sword } from 'lucide-react';
+import { Loader2, Sword } from 'lucide-react';
 
 export default function Home() {
 	const router = useRouter();
 	const { data: session } = useSession();
 	const { state, dispatch, username, setUsername, profileId, setProfileId } = useGame();
 	const [usernameInput, setUsernameInput] = useState('');
-	const [showChallengeLink, setShowChallengeLink] = useState(false);
-	const [challengeLink, setChallengeLink] = useState('');
 	const [showUsernameModal, setShowUsernameModal] = useState(false);
 	const [showConfetti, setShowConfetti] = useState(false);
 	const [isLoadingAnswer, setIsLoadingAnswer] = useState(false);
+	const previousDestinationsRef = useRef<string[]>([]);
 
-	// Get random destination query
-	const randomDestinationQuery = api.game.getRandomDestination.useQuery(undefined, {
-		enabled: state.isPlaying && !state.currentDestination,
-	});
-
+	// Track seen destinations to avoid repetition
 	useEffect(() => {
-		if (randomDestinationQuery.data) {
-			dispatch({ 
-				type: 'SET_CURRENT_DESTINATION', 
-				payload: { id: randomDestinationQuery.data.id, clues: randomDestinationQuery.data.clues } 
-			});
+		if (state.result?.destination?.id && !previousDestinationsRef.current.includes(state.result.destination.id)) {
+			previousDestinationsRef.current = [
+				...previousDestinationsRef.current, 
+				state.result.destination.id
+			].slice(-10); // Keep only the last 10 destinations
 		}
-	}, [randomDestinationQuery.data, dispatch]);
+	}, [state.result]);
 
-	// Get options for destination
-	const optionsQuery = api.game.getDestinationOptions.useQuery(
-		{ currentDestinationId: state.currentDestination?.id || '' },
+	// Get random destination query with useCallback for optimization
+	const getRandomDestination = api.game.getRandomDestination.useQuery(
+		{ previousIds: previousDestinationsRef.current },
 		{
-			enabled: !!state.currentDestination && !state.options,
+			enabled: state.isPlaying && !state.currentDestination,
+			staleTime: 0, // Disable caching to always get a fresh destination
+			refetchOnWindowFocus: false
 		}
 	);
 
-	useEffect(() => {
-		if (optionsQuery.data) {
-			dispatch({ type: 'SET_OPTIONS', payload: optionsQuery.data });
+	// Get options for destination with optimized settings
+	const getDestinationOptions = api.game.getDestinationOptions.useQuery(
+		{ 
+			currentDestinationId: state.currentDestination?.id || '',
+			count: 4  // Explicitly request 4 options
+		},
+		{
+			enabled: !!state.currentDestination && !state.options,
+			staleTime: 0, // Disable caching for options too
+			refetchOnWindowFocus: false
 		}
-	}, [optionsQuery.data, dispatch]);
+	);
+
+	// Reduce re-renders by using useEffect with optimization
+	useEffect(() => {
+		if (getRandomDestination.data && !state.currentDestination) {
+			dispatch({ 
+				type: 'SET_CURRENT_DESTINATION', 
+				payload: { id: getRandomDestination.data.id, clues: getRandomDestination.data.clues } 
+			});
+		}
+	}, [getRandomDestination.data, dispatch, state.currentDestination]);
+
+	useEffect(() => {
+		if (getDestinationOptions.data && !state.options) {
+			dispatch({ type: 'SET_OPTIONS', payload: getDestinationOptions.data });
+		}
+	}, [getDestinationOptions.data, dispatch, state.options]);
 
 	// Check answer mutation
 	const checkAnswerMutation = api.game.checkAnswer.useMutation({
@@ -86,20 +106,6 @@ export default function Home() {
 		}
 	});
 
-	// Create challenge mutation
-	const createChallengeMutation = api.game.createChallenge.useMutation({
-		onSuccess: (data) => {
-			if (data) {
-				const link = `${window.location.origin}/challenge/${data.id}`;
-				setChallengeLink(link);
-				setShowChallengeLink(true);
-				toast.success("Challenge created!", {
-					description: "Share the link with your friends and see if they can beat your score!",
-				});
-			}
-		}
-	});
-
 	// User profile upsert mutation
 	const upsertProfileMutation = api.game.upsertProfile.useMutation({
 		onSuccess: (data) => {
@@ -117,6 +123,8 @@ export default function Home() {
 	// Get user profile if logged in
 	const userProfileQuery = api.game.getProfileByUserId.useQuery(undefined, {
 		enabled: !!session?.user,
+		staleTime: 300000, // Cache for 5 minutes
+		refetchOnWindowFocus: false
 	});
 
 	useEffect(() => {
@@ -127,12 +135,14 @@ export default function Home() {
 	}, [userProfileQuery.data, setProfileId, setUsername]);
 
 	// Handle starting the game
-	const handleStartGame = () => {
+	const handleStartGame = useCallback(() => {
+		// Reset previously seen destinations when starting a new game
+		previousDestinationsRef.current = [];
 		dispatch({ type: 'START_GAME' });
-	};
+	}, [dispatch]);
 
 	// Handle selecting an answer
-	const handleSelectAnswer = (answerId: string) => {
+	const handleSelectAnswer = useCallback((answerId: string) => {
 		if (state.selectedAnswer || isLoadingAnswer) return;
 		
 		setIsLoadingAnswer(true);
@@ -143,59 +153,43 @@ export default function Home() {
 			answerId,
 			profileId: profileId || undefined
 		});
-	};
+	}, [state.selectedAnswer, isLoadingAnswer, dispatch, checkAnswerMutation, state.currentDestination?.id, profileId]);
 
 	// Handle next question
-	const handleNextQuestion = () => {
+	const handleNextQuestion = useCallback(() => {
+		// Invalidate queries to ensure we get fresh data
+		getRandomDestination.refetch();
 		dispatch({ type: 'NEXT_QUESTION' });
-	};
+	}, [dispatch, getRandomDestination]);
 
-	// Handle challenge a friend
-	const handleChallengeAFriend = () => {
-		if (!session) {
-			toast.error("Please sign in", {
-				description: "You need to sign in to challenge a friend",
-			});
-			return;
-		}
-		
-		if (!username) {
-			setShowUsernameModal(true);
-			return;
-		}
-
-		createChallengeMutation.mutate({});
-	};
+	// Handle challenge a friend (now redirects to multiplayer)
+	const handleChallengeAFriend = useCallback(() => {
+		router.push('/multiplayer');
+	}, [router]);
 
 	// Handle username submission
-	const handleUsernameSubmit = (e: React.FormEvent) => {
+	const handleUsernameSubmit = useCallback((e: React.FormEvent) => {
 		e.preventDefault();
 		if (usernameInput.length < 3) return;
 		
 		upsertProfileMutation.mutate({ username: usernameInput });
-	};
-
-	// Handle share to WhatsApp
-	const handleShareToWhatsApp = () => {
-		const message = `Hey, I challenge you to beat my score of ${state.score.total} in Globetrotter! Try it here: ${challengeLink}`;
-		window.open(`https://wa.me/?text=${encodeURIComponent(message)}`, '_blank');
-	};
+	}, [usernameInput, upsertProfileMutation]);
 
 	// Handle sign in with Google
-	const handleSignIn = () => {
+	const handleSignIn = useCallback(() => {
 		signIn('google');
-	};
+	}, []);
 
 	return (
-		<div className="flex min-h-screen flex-col items-center justify-center bg-gradient-to-b from-blue-50 to-blue-100 p-4 text-black dark:from-gray-900 dark:to-gray-800 dark:text-white md:p-8">
+		<div className="flex min-h-screen flex-col items-center justify-center bg-background p-4 text-foreground md:p-8">
 			<div className="w-full max-w-md space-y-6">
 				{/* Game Header */}
 				<div className="flex flex-col items-center justify-between gap-2 text-center md:flex-row md:text-left">
 					<div>
-						<h1 className="font-architects-daughter text-4xl font-bold tracking-wide text-blue-600 dark:text-blue-400 md:text-5xl">
+						<h1 className="font-sans text-4xl font-bold tracking-normal text-primary md:text-5xl">
 							Globetrotter
 						</h1>
-						<p className="mt-1 text-sm text-gray-600 dark:text-gray-400 md:mt-2 md:text-base">
+						<p className="mt-1 text-sm text-muted-foreground md:mt-2 md:text-base">
 							The Ultimate Travel Guessing Game
 						</p>
 					</div>
@@ -216,7 +210,7 @@ export default function Home() {
 
 				{/* Google Sign In Button (if not signed in) */}
 				{!session && !state.isPlaying && (
-					<Card className="overflow-hidden shadow-md transition-all duration-300 hover:shadow-lg">
+					<Card className="shadow-sm">
 						<CardContent className="pt-6">
 							<p className="mb-4 text-center text-sm text-muted-foreground">
 								Sign in to track your scores and challenge friends!
@@ -252,7 +246,7 @@ export default function Home() {
 
 				{/* Score Display */}
 				{state.isPlaying && (
-					<Card className="overflow-hidden shadow-md">
+					<Card className="shadow-sm">
 						<CardContent className="py-4">
 							<div className="flex justify-between">
 								<div className="text-center">
@@ -265,7 +259,7 @@ export default function Home() {
 								</div>
 								<div className="text-center">
 									<p className="text-xs text-muted-foreground">Score</p>
-									<p className="text-xl font-bold text-blue-500">{state.score.total}</p>
+									<p className="text-xl font-bold text-primary">{state.score.total}</p>
 								</div>
 							</div>
 						</CardContent>
@@ -274,13 +268,13 @@ export default function Home() {
 
 				{/* Start Game Button */}
 				{!state.isPlaying && (
-					<Card className="overflow-hidden shadow-md transition-all duration-300 hover:shadow-lg">
+					<Card className="shadow-sm">
 						<CardContent className="pt-6">
 							<div className="flex flex-col space-y-4">
 								<Button
 									onClick={handleStartGame}
 									size="lg"
-									className="w-full bg-gradient-to-r from-blue-500 to-blue-600 font-medium text-white transition-all duration-300 hover:shadow-md"
+									className="w-full bg-primary text-primary-foreground"
 								>
 									Start Game
 								</Button>
@@ -289,19 +283,19 @@ export default function Home() {
 									onClick={() => router.push('/multiplayer')}
 									variant="outline"
 									size="lg"
-									className="w-full border-blue-300 bg-blue-50 font-medium text-blue-600 transition-all duration-300 hover:bg-blue-100 hover:shadow-md dark:border-blue-800 dark:bg-blue-900/20 dark:text-blue-400 dark:hover:bg-blue-900/30"
+									className="w-full"
 								>
 									<Sword className="mr-2 h-4 w-4" />
 									Real-time Multiplayer
 								</Button>
 								
 								{state.challenge && (
-									<div className="mb-4 rounded-lg bg-blue-50 p-3 text-center dark:bg-blue-900/20">
+									<div className="mb-4 rounded-lg bg-accent p-3 text-center">
 										<p className="mb-2 text-sm text-muted-foreground">
 											You've been challenged by <span className="font-semibold">{state.challenge.challenger?.username}</span>!
 										</p>
 										<p className="text-sm font-semibold">
-											Their Score: <span className="text-blue-500">{state.challenge.challenger?.totalScore}</span>
+											Their Score: <span className="text-primary">{state.challenge.challenger?.totalScore}</span>
 										</p>
 									</div>
 								)}
@@ -312,11 +306,11 @@ export default function Home() {
 
 				{/* Game Content */}
 				{state.isPlaying && (
-					<Card className="overflow-hidden shadow-md transition-all duration-300 hover:shadow-lg">
+					<Card className="shadow-sm">
 						{/* Loading State */}
 						{(!state.currentDestination || !state.options) && (
 							<CardContent className="flex h-40 items-center justify-center">
-								<div className="h-8 w-8 animate-spin rounded-full border-4 border-blue-500 border-t-transparent"></div>
+								<Loader2 className="h-8 w-8 animate-spin text-primary" />
 							</CardContent>
 						)}
 
@@ -327,10 +321,10 @@ export default function Home() {
 									<CardTitle className="text-center text-xl">Where is this place?</CardTitle>
 								</CardHeader>
 								<CardContent className="space-y-4">
-									<div className="rounded-lg bg-blue-50 p-4 text-sm shadow-inner dark:bg-gray-700">
+									<div className="rounded-lg bg-muted p-4 text-sm shadow-inner">
 										{state.currentDestination.clues.map((clue, index) => (
 											<p key={index} className={cn("mb-2", index > 0 && "mt-3")}>
-												<span className="mr-2 inline-flex h-6 w-6 items-center justify-center rounded-full bg-blue-100 text-xs font-medium text-blue-800 dark:bg-blue-900 dark:text-blue-200">
+												<span className="mr-2 inline-flex h-6 w-6 items-center justify-center rounded-full bg-primary/10 text-xs font-medium text-primary">
 													{index + 1}
 												</span>
 												{clue}
@@ -345,10 +339,10 @@ export default function Home() {
 												disabled={!!state.selectedAnswer || isLoadingAnswer}
 												variant="outline"
 												className={cn(
-													"h-auto justify-between py-3 text-left font-normal transition-all duration-200",
+													"h-auto justify-between py-3 text-left font-normal",
 													state.selectedAnswer === option.id
-														? "border-blue-500 bg-blue-50 dark:border-blue-400 dark:bg-blue-900/20"
-														: "hover:border-blue-200 hover:bg-blue-50/50 dark:hover:border-blue-800 dark:hover:bg-blue-900/10"
+														? "border-primary bg-primary/10"
+														: "hover:border-primary/20 hover:bg-primary/5"
 												)}
 											>
 												<span className="font-medium">{option.city}</span>
@@ -389,20 +383,21 @@ export default function Home() {
 								
 								<CardContent className="space-y-4">
 									{state.result.destination?.cdnImageUrl && (
-										<div className="relative mx-auto mb-4 h-48 w-full overflow-hidden rounded-lg shadow-md transition-all duration-300 hover:shadow-lg sm:h-60">
+										<div className="relative mx-auto mb-4 h-48 w-full overflow-hidden rounded-lg shadow-sm sm:h-60">
 											<Image
 												src={state.result.destination.cdnImageUrl}
 												alt={state.result.destination.city}
 												fill
 												className="object-cover"
 												sizes="(max-width: 768px) 100vw, 500px"
+												priority
 											/>
 										</div>
 									)}
 
 									<div className="rounded-lg bg-muted p-4 text-sm shadow-inner">
 										<div className="flex items-start gap-2">
-											<svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 flex-shrink-0 text-blue-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+											<svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 flex-shrink-0 text-primary" fill="none" viewBox="0 0 24 24" stroke="currentColor">
 												<path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
 											</svg>
 											<p className="italic">{state.result.fact}</p>
@@ -413,7 +408,7 @@ export default function Home() {
 								<CardFooter>
 									<Button
 										onClick={handleNextQuestion}
-										className="w-full bg-gradient-to-r from-blue-500 to-blue-600 font-medium text-white transition-all duration-300 hover:shadow-md"
+										className="w-full bg-primary text-primary-foreground"
 									>
 										Next Destination
 									</Button>
@@ -423,55 +418,16 @@ export default function Home() {
 					</Card>
 				)}
 
-				{/* Challenge Button */}
-				{state.isPlaying && !showChallengeLink && (
+				{/* Challenge Button - now redirects to multiplayer */}
+				{state.isPlaying && (
 					<Button
 						onClick={handleChallengeAFriend}
 						variant="outline"
-						className="w-full transition-all duration-200 hover:border-blue-300 hover:bg-blue-50 dark:hover:border-blue-700 dark:hover:bg-blue-900/10"
+						className="w-full"
 					>
+						<Sword className="mr-2 h-4 w-4" />
 						Challenge a Friend
 					</Button>
-				)}
-
-				{/* Challenge Link */}
-				{showChallengeLink && (
-					<Card className="overflow-hidden shadow-md">
-						<CardHeader className="pb-2">
-							<CardTitle className="text-center text-lg">Share your challenge</CardTitle>
-						</CardHeader>
-						<CardContent className="space-y-4">
-							<div className="flex overflow-hidden rounded-md border">
-								<Input 
-									readOnly 
-									value={challengeLink} 
-									className="rounded-none border-0"
-								/>
-								<Button
-									variant="secondary"
-									className="rounded-none"
-									onClick={() => {
-										navigator.clipboard.writeText(challengeLink);
-										toast.success("Copied!", {
-											description: "Link copied to clipboard",
-										});
-									}}
-								>
-									Copy
-								</Button>
-							</div>
-							<Button
-								onClick={handleShareToWhatsApp}
-								className="w-full bg-green-500 hover:bg-green-600"
-							>
-								<svg xmlns="http://www.w3.org/2000/svg" className="mr-2 h-5 w-5" fill="currentColor" viewBox="0 0 24 24">
-									<path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347z" />
-									<path d="M12 0C5.373 0 0 5.373 0 12s5.373 12 12 12 12-5.373 12-12S18.627 0 12 0zm0 22c-5.523 0-10-4.477-10-10S6.477 2 12 2s10 4.477 10 10-4.477 10-10 10z" />
-								</svg>
-								Share on WhatsApp
-							</Button>
-						</CardContent>
-					</Card>
 				)}
 
 				{/* Username Modal */}

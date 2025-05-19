@@ -2,20 +2,80 @@ import { z } from "zod";
 
 import { createTRPCRouter, protectedProcedure, publicProcedure } from "~/server/api/trpc";
 
+// Keep track of recently used destinations to avoid repetition
+const recentDestinations = new Set<string>();
+const MAX_RECENT_DESTINATIONS = 10;
+
 export const gameRouter = createTRPCRouter({
   // Get a random destination with clues
-  getRandomDestination: publicProcedure.query(async ({ ctx }) => {
-    const destinationsCount = await ctx.db.destination.count();
-    const skip = Math.floor(Math.random() * destinationsCount);
-    const destination = await ctx.db.destination.findFirst({
-      skip,
-      select: {
-        id: true,
-        clues: true,
-      },
-    });
-    return destination;
-  }),
+  getRandomDestination: publicProcedure
+    .input(z.object({
+      previousIds: z.array(z.string()).optional(),
+    }).optional())
+    .query(async ({ ctx, input }) => {
+      const destinationsCount = await ctx.db.destination.count();
+      
+      // Get a list of IDs to exclude (previously seen)
+      const excludeIds = input?.previousIds || Array.from(recentDestinations);
+      
+      // Try to get a destination that hasn't been seen recently
+      let destination;
+      let attempts = 0;
+      const maxAttempts = 3; // Limit attempts to prevent infinite loops
+      
+      while (!destination && attempts < maxAttempts) {
+        attempts++;
+        
+        // Generate a truly random skip value
+        const skip = Math.floor(Math.random() * (destinationsCount - 1));
+        
+        // Find a destination that's not in the excluded list
+        destination = await ctx.db.destination.findFirst({
+          where: {
+            id: {
+              notIn: excludeIds.length > 0 ? excludeIds : undefined,
+            },
+          },
+          skip,
+          select: {
+            id: true,
+            clues: true,
+          },
+          orderBy: {
+            // Add some extra randomness with a secondary ordering
+            city: Math.random() > 0.5 ? 'asc' : 'desc',
+          },
+        });
+      }
+      
+      // If we couldn't find a new destination after attempts, get any random one
+      if (!destination) {
+        const randomSkip = Math.floor(Math.random() * destinationsCount);
+        destination = await ctx.db.destination.findFirst({
+          skip: randomSkip,
+          select: {
+            id: true,
+            clues: true,
+          },
+        });
+      }
+      
+      // Track this destination to avoid showing it again soon
+      if (destination) {
+        // Add to recent destinations
+        recentDestinations.add(destination.id);
+        
+        // Keep the recents list from growing too large
+        if (recentDestinations.size > MAX_RECENT_DESTINATIONS) {
+          const oldestId = recentDestinations.values().next().value;
+          if (oldestId) {
+            recentDestinations.delete(oldestId);
+          }
+        }
+      }
+      
+      return destination;
+    }),
 
   // Get multiple destinations for multiple choice
   getDestinationOptions: publicProcedure
@@ -34,10 +94,21 @@ export const gameRouter = createTRPCRouter({
         throw new Error("Destination not found");
       }
 
-      // Get random destinations excluding the current one
+      // Get random destinations excluding the current one and any that are too similar
       const randomDestinations = await ctx.db.destination.findMany({
         where: {
           id: { not: input.currentDestinationId },
+          // Add some difficulty by including destinations from the same country occasionally
+          // but make sure they're not too similar
+          OR: [
+            { country: { not: currentDestination.country } },
+            { 
+              AND: [
+                { country: currentDestination.country },
+                { city: { not: { contains: currentDestination.city.substring(0, 3) } } }
+              ]
+            }
+          ]
         },
         select: {
           id: true,
@@ -45,8 +116,9 @@ export const gameRouter = createTRPCRouter({
           country: true,
         },
         take: input.count - 1,
+        // Use randomized ordering
         orderBy: {
-          city: "asc", // Using a consistent order, we'll shuffle on the client
+          id: Math.random() > 0.5 ? 'asc' : 'desc',
         },
       });
 
@@ -154,52 +226,39 @@ export const gameRouter = createTRPCRouter({
 
   // Create a challenge
   createChallenge: protectedProcedure
-    .input(z.object({
-      challengedUsername: z.string().optional(),
-    }))
-    .mutation(async ({ ctx, input }) => {
-      const challenger = await ctx.db.userProfile.findUnique({
+    .input(z.object({}).optional())
+    .mutation(async ({ ctx }) => {
+      const profile = await ctx.db.userProfile.findUnique({
         where: { userId: ctx.session.user.id },
       });
 
-      if (!challenger) {
+      if (!profile) {
         throw new Error("Profile not found");
-      }
-
-      let challengedId = null;
-      if (input.challengedUsername) {
-        const challenged = await ctx.db.userProfile.findUnique({
-          where: { username: input.challengedUsername },
-          select: { id: true },
-        });
-        if (challenged) {
-          challengedId = challenged.id;
-        }
       }
 
       return ctx.db.challenge.create({
         data: {
-          challengerId: challenger.id,
-          challengedId,
+          challengerId: profile.id,
         },
       });
     }),
 
-  // Get challenge by ID
-  getChallengeById: publicProcedure
+  // Get a challenge by ID
+  getChallenge: publicProcedure
     .input(z.object({
-      challengeId: z.string(),
+      id: z.string(),
     }))
     .query(async ({ ctx, input }) => {
       return ctx.db.challenge.findUnique({
-        where: { id: input.challengeId },
+        where: { id: input.id },
         include: {
           challenger: {
             select: {
+              id: true,
               username: true,
+              totalScore: true,
               correctCount: true,
               wrongCount: true,
-              totalScore: true,
             },
           },
         },
