@@ -11,13 +11,14 @@ import { Card, CardContent, CardFooter, CardHeader, CardTitle } from '~/componen
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '~/components/ui/dialog';
 import { Input } from '~/components/ui/input';
 import { Separator } from '~/components/ui/separator';
-import { useToast } from '~/components/ui/use-toast';
+import { toast } from 'sonner';
 import { signIn, useSession } from 'next-auth/react';
 import { Confetti } from '~/components/confetti';
+import { Badge } from '~/components/ui/badge';
+import { Avatar, AvatarFallback, AvatarImage } from '~/components/ui/avatar';
 
 export default function Home() {
 	const router = useRouter();
-	const { toast } = useToast();
 	const { data: session } = useSession();
 	const { state, dispatch, username, setUsername, profileId, setProfileId } = useGame();
 	const [usernameInput, setUsernameInput] = useState('');
@@ -25,6 +26,7 @@ export default function Home() {
 	const [challengeLink, setChallengeLink] = useState('');
 	const [showUsernameModal, setShowUsernameModal] = useState(false);
 	const [showConfetti, setShowConfetti] = useState(false);
+	const [isLoadingAnswer, setIsLoadingAnswer] = useState(false);
 
 	// Get random destination query
 	const randomDestinationQuery = api.game.getRandomDestination.useQuery(undefined, {
@@ -79,6 +81,7 @@ export default function Home() {
 					setTimeout(() => setShowConfetti(false), 3000);
 				}
 			}
+			setIsLoadingAnswer(false);
 		}
 	});
 
@@ -89,8 +92,7 @@ export default function Home() {
 				const link = `${window.location.origin}/challenge/${data.id}`;
 				setChallengeLink(link);
 				setShowChallengeLink(true);
-				toast({
-					title: "Challenge created!",
+				toast.success("Challenge created!", {
 					description: "Share the link with your friends and see if they can beat your score!",
 				});
 			}
@@ -104,8 +106,7 @@ export default function Home() {
 				setProfileId(data.id);
 				setUsername(data.username);
 				setShowUsernameModal(false);
-				toast({
-					title: "Profile updated!",
+				toast.success("Profile updated!", {
 					description: `Welcome, ${data.username}!`,
 				});
 			}
@@ -131,8 +132,9 @@ export default function Home() {
 
 	// Handle selecting an answer
 	const handleSelectAnswer = (answerId: string) => {
-		if (state.selectedAnswer) return;
+		if (state.selectedAnswer || isLoadingAnswer) return;
 		
+		setIsLoadingAnswer(true);
 		dispatch({ type: 'SELECT_ANSWER', payload: answerId });
 		
 		checkAnswerMutation.mutate({
@@ -150,10 +152,8 @@ export default function Home() {
 	// Handle challenge a friend
 	const handleChallengeAFriend = () => {
 		if (!session) {
-			toast({
-				title: "Please sign in",
+			toast.error("Please sign in", {
 				description: "You need to sign in to challenge a friend",
-				variant: "destructive",
 			});
 			return;
 		}
@@ -186,21 +186,36 @@ export default function Home() {
 	};
 
 	return (
-		<div className="flex min-h-screen flex-col items-center justify-center bg-gradient-to-b from-blue-50 to-blue-100 px-4 py-8 text-black dark:from-gray-900 dark:to-gray-800 dark:text-white">
+		<div className="flex min-h-screen flex-col items-center justify-center bg-gradient-to-b from-blue-50 to-blue-100 p-4 text-black dark:from-gray-900 dark:to-gray-800 dark:text-white md:p-8">
 			<div className="w-full max-w-md space-y-6">
 				{/* Game Header */}
-				<div className="text-center">
-					<h1 className="font-architects-daughter text-4xl font-bold tracking-wide text-blue-600 dark:text-blue-400 md:text-5xl">
-						Globetrotter
-					</h1>
-					<p className="mt-2 text-sm text-gray-600 dark:text-gray-400 md:text-base">
-						The Ultimate Travel Guessing Game
-					</p>
+				<div className="flex flex-col items-center justify-between gap-2 text-center md:flex-row md:text-left">
+					<div>
+						<h1 className="font-architects-daughter text-4xl font-bold tracking-wide text-blue-600 dark:text-blue-400 md:text-5xl">
+							Globetrotter
+						</h1>
+						<p className="mt-1 text-sm text-gray-600 dark:text-gray-400 md:mt-2 md:text-base">
+							The Ultimate Travel Guessing Game
+						</p>
+					</div>
+					{session?.user && (
+						<div className="flex items-center gap-2">
+							<Avatar>
+								<AvatarImage src={session.user.image ?? undefined} alt={session.user.name ?? "User"} />
+								<AvatarFallback>{session.user.name?.substring(0, 2) || "U"}</AvatarFallback>
+							</Avatar>
+							{username && (
+								<Badge variant="outline" className="text-xs">
+									{username}
+								</Badge>
+							)}
+						</div>
+					)}
 				</div>
 
 				{/* Google Sign In Button (if not signed in) */}
 				{!session && !state.isPlaying && (
-					<Card>
+					<Card className="overflow-hidden shadow-md transition-all duration-300 hover:shadow-lg">
 						<CardContent className="pt-6">
 							<p className="mb-4 text-center text-sm text-muted-foreground">
 								Sign in to track your scores and challenge friends!
@@ -236,7 +251,7 @@ export default function Home() {
 
 				{/* Score Display */}
 				{state.isPlaying && (
-					<Card>
+					<Card className="overflow-hidden shadow-md">
 						<CardContent className="py-4">
 							<div className="flex justify-between">
 								<div className="text-center">
@@ -258,23 +273,23 @@ export default function Home() {
 
 				{/* Start Game Button */}
 				{!state.isPlaying && (
-					<Card>
+					<Card className="overflow-hidden shadow-md transition-all duration-300 hover:shadow-lg">
 						<CardContent className="pt-6">
 							<div className="flex flex-col space-y-4">
 								<Button
 									onClick={handleStartGame}
 									size="lg"
-									className="w-full"
+									className="w-full bg-gradient-to-r from-blue-500 to-blue-600 font-medium text-white transition-all duration-300 hover:shadow-md"
 								>
 									Start Game
 								</Button>
 								{state.challenge && (
-									<div className="mb-4 text-center">
+									<div className="mb-4 rounded-lg bg-blue-50 p-3 text-center dark:bg-blue-900/20">
 										<p className="mb-2 text-sm text-muted-foreground">
-											You've been challenged by {state.challenge.challenger?.username}!
+											You've been challenged by <span className="font-semibold">{state.challenge.challenger?.username}</span>!
 										</p>
 										<p className="text-sm font-semibold">
-											Their Score: {state.challenge.challenger?.totalScore}
+											Their Score: <span className="text-blue-500">{state.challenge.challenger?.totalScore}</span>
 										</p>
 									</div>
 								)}
@@ -285,7 +300,7 @@ export default function Home() {
 
 				{/* Game Content */}
 				{state.isPlaying && (
-					<Card className="overflow-hidden">
+					<Card className="overflow-hidden shadow-md transition-all duration-300 hover:shadow-lg">
 						{/* Loading State */}
 						{(!state.currentDestination || !state.options) && (
 							<CardContent className="flex h-40 items-center justify-center">
@@ -296,13 +311,18 @@ export default function Home() {
 						{/* Clues */}
 						{state.currentDestination && state.options && !state.result && (
 							<div>
-								<CardHeader>
-									<CardTitle>Where is this place?</CardTitle>
+								<CardHeader className="pb-2">
+									<CardTitle className="text-center text-xl">Where is this place?</CardTitle>
 								</CardHeader>
 								<CardContent className="space-y-4">
-									<div className="rounded-lg bg-blue-50 p-4 text-sm dark:bg-gray-700">
+									<div className="rounded-lg bg-blue-50 p-4 text-sm shadow-inner dark:bg-gray-700">
 										{state.currentDestination.clues.map((clue, index) => (
-											<p key={index} className="mb-2">{clue}</p>
+											<p key={index} className={cn("mb-2", index > 0 && "mt-3")}>
+												<span className="mr-2 inline-flex h-6 w-6 items-center justify-center rounded-full bg-blue-100 text-xs font-medium text-blue-800 dark:bg-blue-900 dark:text-blue-200">
+													{index + 1}
+												</span>
+												{clue}
+											</p>
 										))}
 									</div>
 									<div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
@@ -310,13 +330,13 @@ export default function Home() {
 											<Button
 												key={option.id}
 												onClick={() => handleSelectAnswer(option.id)}
-												disabled={!!state.selectedAnswer}
+												disabled={!!state.selectedAnswer || isLoadingAnswer}
 												variant="outline"
 												className={cn(
-													"h-auto justify-between py-3 text-left font-normal",
+													"h-auto justify-between py-3 text-left font-normal transition-all duration-200",
 													state.selectedAnswer === option.id
 														? "border-blue-500 bg-blue-50 dark:border-blue-400 dark:bg-blue-900/20"
-														: ""
+														: "hover:border-blue-200 hover:bg-blue-50/50 dark:hover:border-blue-800 dark:hover:bg-blue-900/10"
 												)}
 											>
 												<span className="font-medium">{option.city}</span>
@@ -357,7 +377,7 @@ export default function Home() {
 								
 								<CardContent className="space-y-4">
 									{state.result.destination?.cdnImageUrl && (
-										<div className="relative mb-4 h-40 w-full overflow-hidden rounded-lg">
+										<div className="relative mx-auto mb-4 h-48 w-full overflow-hidden rounded-lg shadow-md transition-all duration-300 hover:shadow-lg sm:h-60">
 											<Image
 												src={state.result.destination.cdnImageUrl}
 												alt={state.result.destination.city}
@@ -368,15 +388,20 @@ export default function Home() {
 										</div>
 									)}
 
-									<div className="rounded-lg bg-muted p-4 text-sm">
-										<p className="italic">{state.result.fact}</p>
+									<div className="rounded-lg bg-muted p-4 text-sm shadow-inner">
+										<div className="flex items-start gap-2">
+											<svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 flex-shrink-0 text-blue-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+												<path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+											</svg>
+											<p className="italic">{state.result.fact}</p>
+										</div>
 									</div>
 								</CardContent>
 								
 								<CardFooter>
 									<Button
 										onClick={handleNextQuestion}
-										className="w-full"
+										className="w-full bg-gradient-to-r from-blue-500 to-blue-600 font-medium text-white transition-all duration-300 hover:shadow-md"
 									>
 										Next Destination
 									</Button>
@@ -391,7 +416,7 @@ export default function Home() {
 					<Button
 						onClick={handleChallengeAFriend}
 						variant="outline"
-						className="w-full"
+						className="w-full transition-all duration-200 hover:border-blue-300 hover:bg-blue-50 dark:hover:border-blue-700 dark:hover:bg-blue-900/10"
 					>
 						Challenge a Friend
 					</Button>
@@ -399,9 +424,9 @@ export default function Home() {
 
 				{/* Challenge Link */}
 				{showChallengeLink && (
-					<Card>
-						<CardHeader>
-							<CardTitle className="text-lg">Share your challenge</CardTitle>
+					<Card className="overflow-hidden shadow-md">
+						<CardHeader className="pb-2">
+							<CardTitle className="text-center text-lg">Share your challenge</CardTitle>
 						</CardHeader>
 						<CardContent className="space-y-4">
 							<div className="flex overflow-hidden rounded-md border">
@@ -415,8 +440,7 @@ export default function Home() {
 									className="rounded-none"
 									onClick={() => {
 										navigator.clipboard.writeText(challengeLink);
-										toast({
-											title: "Copied!",
+										toast.success("Copied!", {
 											description: "Link copied to clipboard",
 										});
 									}}
@@ -428,6 +452,10 @@ export default function Home() {
 								onClick={handleShareToWhatsApp}
 								className="w-full bg-green-500 hover:bg-green-600"
 							>
+								<svg xmlns="http://www.w3.org/2000/svg" className="mr-2 h-5 w-5" fill="currentColor" viewBox="0 0 24 24">
+									<path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347z" />
+									<path d="M12 0C5.373 0 0 5.373 0 12s5.373 12 12 12 12-5.373 12-12S18.627 0 12 0zm0 22c-5.523 0-10-4.477-10-10S6.477 2 12 2s10 4.477 10 10-4.477 10-10 10z" />
+								</svg>
 								Share on WhatsApp
 							</Button>
 						</CardContent>

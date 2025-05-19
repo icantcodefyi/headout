@@ -1,3 +1,5 @@
+'use client';
+
 import { createContext, useContext, useReducer, useState, type ReactNode } from "react";
 
 type Destination = {

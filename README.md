@@ -1,29 +1,104 @@
-# Create T3 App
+# 🧩 Globetrotter - The Ultimate Travel Guessing Game
 
-This is a [T3 Stack](https://create.t3.gg/) project bootstrapped with `create-t3-app`.
+Globetrotter is a fun and engaging full-stack web application where users get cryptic clues about famous places around the world and must guess which destination they refer to. Upon guessing, users unlock fun facts, trivia, and surprises about each destination!
 
-## What's next? How do I make an app with this?
+## 🔹 Features
 
-We try to keep this project as simple as possible, so you can start with just the scaffolding we set up for you, and add additional things later when they become necessary.
+- **Rich Dataset**: 100+ destinations with cryptic clues, fun facts, and trivia
+- **Interactive Gameplay**: Users receive clues and select from multiple possible destinations
+- **Real-time Feedback**: 
+  - 🎉 Correct Answer: Animate confetti + reveal a fun fact
+  - 😢 Incorrect Answer: Show a sad-face animation + reveal a fun fact
+- **Score Tracking**: Track correct and incorrect answers with a total score
+- **"Challenge a Friend" Feature**: Generate shareable challenge links to compete with friends
+- **User Profiles**: Create a unique username to save scores and track your progress
+- **Mobile Responsive**: Fully optimized for mobile and desktop devices
 
-If you are not familiar with the different technologies used in this project, please refer to the respective docs. If you still are in the wind, please join our [Discord](https://t3.gg/discord) and ask for help.
+## 🔹 Tech Stack
 
-- [Next.js](https://nextjs.org)
-- [NextAuth.js](https://next-auth.js.org)
-- [Prisma](https://prisma.io)
-- [Drizzle](https://orm.drizzle.team)
-- [Tailwind CSS](https://tailwindcss.com)
-- [tRPC](https://trpc.io)
+- **Frontend**: Next.js 14 with App Router, TypeScript, TailwindCSS, shadcn/ui
+- **Backend**: tRPC for type-safe API calls, Prisma ORM
+- **Authentication**: NextAuth.js with Google provider
+- **Database**: PostgreSQL
+- **Styling**: TailwindCSS with custom animations and transitions
 
-## Learn More
+## 🔹 Getting Started
 
-To learn more about the [T3 Stack](https://create.t3.gg/), take a look at the following resources:
+### Prerequisites
 
-- [Documentation](https://create.t3.gg/)
-- [Learn the T3 Stack](https://create.t3.gg/en/faq#what-learning-resources-are-currently-available) — Check out these awesome tutorials
+- Node.js 18+ and npm/pnpm/bun
+- PostgreSQL database
 
-You can check out the [create-t3-app GitHub repository](https://github.com/t3-oss/create-t3-app) — your feedback and contributions are welcome!
+### Installation
 
-## How do I deploy this?
+1. Clone the repository:
+   ```bash
+   git clone <repository-url>
+   cd globetrotter
+   ```
 
-Follow our deployment guides for [Vercel](https://create.t3.gg/en/deployment/vercel), [Netlify](https://create.t3.gg/en/deployment/netlify) and [Docker](https://create.t3.gg/en/deployment/docker) for more information.
+2. Install dependencies:
+   ```bash
+   npm install
+   # or
+   pnpm install
+   # or
+   bun install
+   ```
+
+3. Set up environment variables:
+   Create a `.env` file in the root directory with the following variables:
+   ```
+   # Database URL
+   DB_URL="postgresql://username:password@localhost:5432/globetrotter"
+   
+   # Next Auth
+   NEXTAUTH_SECRET="your-nextauth-secret"
+   NEXTAUTH_URL="http://localhost:3000"
+   
+   # Google OAuth
+   GOOGLE_CLIENT_ID="your-google-client-id"
+   GOOGLE_CLIENT_SECRET="your-google-client-secret"
+   ```
+
+4. Set up the database:
+   ```bash
+   # Run the database setup script
+   ./start-database.sh
+   
+   # Run Prisma migrations
+   npx prisma migrate dev
+   
+   # Seed the database with destinations
+   npx prisma db seed
+   ```
+
+5. Start the development server:
+   ```bash
+   npm run dev
+   # or
+   pnpm dev
+   # or
+   bun dev
+   ```
+
+6. Open [http://localhost:3000](http://localhost:3000) in your browser to see the application.
+
+## 🔹 Game Rules
+
+1. You'll be presented with 1-2 cryptic clues about a famous destination.
+2. Choose from multiple options to guess the correct destination.
+3. Receive immediate feedback after answering:
+   - Correct answer: See confetti animation and learn a fun fact
+   - Incorrect answer: See a sad face and still learn something new
+4. Track your score and challenge friends to beat it!
+
+## 🔹 License
+
+This project is licensed under the MIT License - see the LICENSE file for details.
+
+## 🔹 Acknowledgements
+
+- Images sourced from Unsplash
+- Travel facts verified from multiple trusted sources
+- Built with ❤️ for travelers and geography enthusiasts everywhere

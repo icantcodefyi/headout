@@ -4,6 +4,8 @@ import type { Metadata } from "next";
 import { Architects_Daughter } from "next/font/google";
 import { GameProvider } from "~/contexts/game-context";
 import { TRPCReactProvider } from "~/trpc/react";
+import { Toaster } from "~/components/ui/sonner";
+import { SessionProvider } from "next-auth/react";
 
 export const metadata: Metadata = {
 	title: "Globetrotter - The Ultimate Travel Guessing Game",
@@ -23,11 +25,14 @@ export default function RootLayout({
 	return (
 		<html lang="en" className={`${architectsDaughter.variable}`}>
 			<body>
-				<TRPCReactProvider>
-					<GameProvider>
-						{children}
-					</GameProvider>
-				</TRPCReactProvider>
+				<SessionProvider>
+					<TRPCReactProvider>
+						<GameProvider>
+							{children}
+							<Toaster richColors position="top-right" />
+						</GameProvider>
+						</TRPCReactProvider>
+				</SessionProvider>
 			</body>
 		</html>
 	);
