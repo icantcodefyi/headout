@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect } from 'react';
+import { use, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { api } from '~/trpc/react';
 import { useGame } from '~/contexts/game-context';
@@ -12,13 +12,14 @@ import { toast } from 'sonner';
 export default function ChallengePage({
   params
 }: {
-  params: { id: string }
+  params: Promise<{ id: string }>
 }) {
   const router = useRouter();
   const { dispatch } = useGame();
+  const { id } = use(params);
   
   const challengeQuery = api.game.getChallengeById.useQuery({
-    challengeId: params.id
+    challengeId: id
   });
 
   useEffect(() => {
@@ -27,7 +28,7 @@ export default function ChallengePage({
       dispatch({
         type: 'SET_CHALLENGE',
         payload: {
-          id: params.id,
+          id: id,
           challenger: {
             username: challengeQuery.data.challenger.username,
             totalScore: challengeQuery.data.challenger.totalScore,
@@ -55,7 +56,7 @@ export default function ChallengePage({
         description: "This challenge may have expired or doesn't exist.",
       });
     }
-  }, [challengeQuery.data, challengeQuery.isError, dispatch, params.id, router]);
+  }, [challengeQuery.data, challengeQuery.isError, dispatch, id, router]);
 
   return (
     <div className="flex min-h-screen flex-col items-center justify-center bg-gradient-to-b from-blue-50 to-blue-100 p-4 text-black dark:from-gray-900 dark:to-gray-800 dark:text-white md:p-8">

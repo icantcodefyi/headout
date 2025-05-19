@@ -18,7 +18,7 @@ const destinationsData = [
       "This city is famous for its croissants and macarons. Bon appétit!",
       "Paris was originally a Roman city called Lutetia."
     ],
-    cdnImageUrl: "https://images.unsplash.com/photo-1502602898657-3e91760cbb34?q=80&w=1000&auto=format&fit=crop"
+    cdnImageUrl: "https://i.pinimg.com/736x/6a/99/ee/6a99ee843798375c5f7049316e8d31ed.jpg"
   },
   {
     city: "Tokyo",
@@ -35,7 +35,7 @@ const destinationsData = [
       "The city has over 160,000 restaurants, more than any other city in the world.",
       "Tokyo's subway system is so efficient that train delays of just a few minutes come with formal apologies."
     ],
-    cdnImageUrl: "https://images.unsplash.com/photo-1503899036084-c55cdd92da26?q=80&w=1000&auto=format&fit=crop"
+    cdnImageUrl: "https://i.pinimg.com/736x/ff/0b/41/ff0b4140b1c4375d99050b01676cf447.jpg"
   },
   {
     city: "New York",
@@ -52,7 +52,7 @@ const destinationsData = [
       "New York City has 468 subway stations, making it one of the most complex transit systems in the world.",
       "The Empire State Building has its own zip code: 10118."
     ],
-    cdnImageUrl: "https://images.unsplash.com/photo-1496442226666-8d4d0e62e6e9?q=80&w=1000&auto=format&fit=crop"
+    cdnImageUrl: "https://i.pinimg.com/736x/43/9c/71/439c719d3609bc7e3a64eaf51992c903.jpg"
   },
   {
     city: "Rome",
@@ -69,7 +69,7 @@ const destinationsData = [
       "The Pantheon in this city has the world's largest unreinforced concrete dome, nearly 2,000 years after it was built.",
       "The first shopping mall in the world was built here in the early 2nd century."
     ],
-    cdnImageUrl: "https://images.unsplash.com/photo-1552832230-c0197dd311b5?q=80&w=1000&auto=format&fit=crop"
+    cdnImageUrl: "https://i.pinimg.com/736x/81/8a/f1/818af12fe476313c6cd407561e607dd3.jpg"
   },
   {
     city: "Sydney",
@@ -86,7 +86,7 @@ const destinationsData = [
       "The city's name comes from the British Home Secretary Thomas Townshend, Lord Sydney.",
       "Bondi Beach is one of the most famous beaches in the world and is less than 5 miles from downtown."
     ],
-    cdnImageUrl: "https://images.unsplash.com/photo-1506973035872-a4ec16b8e8d9?q=80&w=1000&auto=format&fit=crop"
+    cdnImageUrl: "https://i.pinimg.com/736x/32/a4/d1/32a4d1af36a5c5b5895496f19b8765d6.jpg"
   },
   {
     city: "Cairo",
@@ -103,7 +103,7 @@ const destinationsData = [
       "Despite being surrounded by desert, this city experiences occasional snow about once every 100 years.",
       "The city's traffic is so notorious that locals joke it would be faster to walk across the Sahara."
     ],
-    cdnImageUrl: "https://images.unsplash.com/photo-1572252009286-268acec5ca0a?q=80&w=1000&auto=format&fit=crop"
+    cdnImageUrl: "https://i.pinimg.com/736x/2a/70/6a/2a706af306369050f1dc27029b978672.jpg"
   },
   {
     city: "Rio de Janeiro",
@@ -120,7 +120,7 @@ const destinationsData = [
       "This was the first South American city to host the Summer Olympics.",
       "The name means 'January River' in Portuguese, though there is no river there—early explorers mistook the bay for a river mouth."
     ],
-    cdnImageUrl: "https://images.unsplash.com/photo-1483729558449-99ef09a8c325?q=80&w=1000&auto=format&fit=crop"
+    cdnImageUrl: "https://i.pinimg.com/736x/03/fe/47/03fe471d1c1df0e574ded6a44952745f.jpg"
   }
 ];
 

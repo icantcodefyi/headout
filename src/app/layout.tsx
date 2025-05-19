@@ -23,7 +23,7 @@ export default function RootLayout({
 	children,
 }: Readonly<{ children: React.ReactNode }>) {
 	return (
-		<html lang="en" className={`${architectsDaughter.variable}`}>
+		<html lang="en" className={`${architectsDaughter.variable} antialiased`} suppressHydrationWarning>
 			<body>
 				<SessionProvider>
 					<TRPCReactProvider>
