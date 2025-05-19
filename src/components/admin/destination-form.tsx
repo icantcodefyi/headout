@@ -21,8 +21,8 @@ const destinationSchema = z.object({
   city: z.string().min(1, "City is required"),
   country: z.string().min(1, "Country is required"),
   clues: z.array(z.string().min(1, "Clue cannot be empty")).min(1, "At least one clue is required"),
-  funFacts: z.array(z.string()).default([]),
-  trivia: z.array(z.string()).default([]),
+  funFacts: z.array(z.string()),
+  trivia: z.array(z.string()),
   cdnImageUrl: z.string().url().optional().nullable(),
 });
 
@@ -99,15 +99,15 @@ export function DestinationForm({ destinationId }: DestinationFormProps) {
   }, [destination, form]);
   
   // Form submission
-  const onSubmit = (data: DestinationFormValues) => {
+  const onSubmit = (values: DestinationFormValues) => {
     setIsLoading(true);
     
     // Filter out empty strings from arrays
     const cleanedData = {
-      ...data,
-      clues: data.clues.filter(Boolean),
-      funFacts: data.funFacts.filter(Boolean),
-      trivia: data.trivia.filter(Boolean),
+      ...values,
+      clues: values.clues.filter(Boolean),
+      funFacts: values.funFacts.filter(Boolean),
+      trivia: values.trivia.filter(Boolean),
     };
     
     if (isEditMode) {

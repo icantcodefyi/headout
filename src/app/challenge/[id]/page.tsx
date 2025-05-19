@@ -18,8 +18,8 @@ export default function ChallengePage({
   const { dispatch } = useGame();
   const { id } = use(params);
   
-  const challengeQuery = api.game.getChallengeById.useQuery({
-    challengeId: id
+  const challengeQuery = api.game.getChallenge.useQuery({
+    id: id
   });
 
   useEffect(() => {
