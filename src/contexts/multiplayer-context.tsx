@@ -2,7 +2,6 @@
 
 import { createContext, useContext, useEffect, useReducer, type ReactNode } from 'react';
 import { Socket, io } from 'socket.io-client';
-import { toast } from 'sonner';
 
 // Types
 type Player = {
@@ -195,33 +194,22 @@ export function MultiplayerProvider({ children }: { children: ReactNode }) {
         console.log('Connected to Socket.IO server');
         dispatch({ type: 'CONNECTED' });
         dispatch({ type: 'SET_LOADING', payload: false });
-        
-        toast.success('Connected to game server');
       });
       
       socket.on('connect_error', (error) => {
         console.error('Socket connection error:', error);
         dispatch({ type: 'SET_ERROR', payload: 'Failed to connect to game server' });
         dispatch({ type: 'SET_LOADING', payload: false });
-        
-        toast.error('Connection error', {
-          description: 'Failed to connect to game server',
-        });
       });
       
       socket.on('error', (error: { message: string }) => {
         console.error('Socket error:', error);
         dispatch({ type: 'SET_ERROR', payload: error.message });
         dispatch({ type: 'SET_LOADING', payload: false });
-        
-        toast.error('Game Error', {
-          description: error.message || 'An error occurred',
-        });
       });
       
       socket.on('disconnect', () => {
         console.log('Socket disconnected');
-        toast.error('Disconnected', { description: 'Lost connection to the game server' });
         dispatch({ type: 'DISCONNECT' });
       });
       
@@ -229,10 +217,6 @@ export function MultiplayerProvider({ children }: { children: ReactNode }) {
         console.log('Joined room:', data.roomId, 'as player:', data.playerId);
         dispatch({ type: 'SET_ROOM_ID', payload: data.roomId });
         dispatch({ type: 'SET_PLAYER_ID', payload: data.playerId });
-        
-        toast.success('Joined Game Room', {
-          description: `Room ID: ${data.roomId}`,
-        });
       });
       
       socket.on('room_update', (room: GameRoom) => {
@@ -280,38 +264,14 @@ export function MultiplayerProvider({ children }: { children: ReactNode }) {
         
         // Reset result when new round starts
         dispatch({ type: 'SET_RESULT', payload: null });
-        
-        // Notify user of new question
-        toast.info('New Question', {
-          description: 'A new question has arrived!',
-        });
       });
       
       socket.on('answer_result', (result: AnswerResult) => {
         dispatch({ type: 'SET_RESULT', payload: result });
-        
-        if (result.playerId === state.playerId) {
-          toast[result.isCorrect ? 'success' : 'error'](
-            result.isCorrect ? 'Correct!' : 'Wrong!',
-            { description: result.fact }
-          );
-        } else {
-          const otherPlayer = state.room?.players.find(p => p.id === result.playerId);
-          if (otherPlayer) {
-            toast.info(`${otherPlayer.username} answered ${result.isCorrect ? 'correctly' : 'incorrectly'}`);
-          }
-        }
       });
       
       socket.on('player_left', ({ playerId }: { playerId: string }) => {
         dispatch({ type: 'PLAYER_LEFT', payload: { playerId } });
-        
-        // Find player name
-        const playerName = state.room?.players.find(
-          (player) => player.id === playerId
-        )?.username || 'Player';
-        
-        toast.info(`${playerName} left the game`);
       });
       
       socket.on('player_disconnected', ({ playerId }: { playerId: string }) => {
@@ -319,10 +279,6 @@ export function MultiplayerProvider({ children }: { children: ReactNode }) {
         const playerName = state.room?.players.find(
           (player) => player.id === playerId
         )?.username || 'Player';
-        
-        toast.warning(`${playerName} disconnected`, {
-          description: 'Waiting for reconnection...',
-        });
       });
       
     } catch (error) {
@@ -335,13 +291,11 @@ export function MultiplayerProvider({ children }: { children: ReactNode }) {
   // Disconnect from the server
   const disconnectFromServer = () => {
     dispatch({ type: 'DISCONNECT' });
-    toast.info('Disconnected from game server');
   };
 
   // Join a room or create one
   const joinRoom = (username: string, roomId?: string, userId?: string) => {
     if (!state.socket || !state.isConnected) {
-      toast.error('Not connected to server');
       return;
     }
     
@@ -382,7 +336,6 @@ export function MultiplayerProvider({ children }: { children: ReactNode }) {
   // Set player as ready
   const setReady = () => {
     if (!state.socket || !state.roomId || !state.playerId) {
-      toast.error('Not connected to room');
       return;
     }
     
@@ -426,13 +379,11 @@ export function MultiplayerProvider({ children }: { children: ReactNode }) {
     });
     
     dispatch({ type: 'RESET' });
-    toast.info('Left the game room');
   };
 
   // Request next question
   const nextQuestion = () => {
     if (!state.socket || !state.roomId) {
-      toast.error('Not connected to room');
       return;
     }
     
@@ -494,11 +445,6 @@ export function MultiplayerProvider({ children }: { children: ReactNode }) {
       
       // Reset any previous answer result
       dispatch({ type: 'SET_RESULT', payload: null });
-      
-      // Notify user of new question
-      toast.info('New Question', {
-        description: 'A new question has arrived!',
-      });
     };
 
     // Add the event listener

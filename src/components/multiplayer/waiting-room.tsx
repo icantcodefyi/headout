@@ -3,7 +3,6 @@ import { Button } from '~/components/ui/button';
 import { Badge } from '~/components/ui/badge';
 import { Card } from '~/components/ui/card';
 import { ClipboardCopy, UserIcon, PlayIcon, CrownIcon } from 'lucide-react';
-import { toast } from 'sonner';
 import { Avatar, AvatarImage, AvatarFallback } from '~/components/ui/avatar';
 import { useSession } from 'next-auth/react';
 
