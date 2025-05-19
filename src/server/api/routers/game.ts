@@ -243,6 +243,47 @@ export const gameRouter = createTRPCRouter({
       });
     }),
 
+  // Create a direct challenge to a specific user by username
+  createDirectChallenge: protectedProcedure
+    .input(z.object({
+      username: z.string(),
+    }))
+    .mutation(async ({ ctx, input }) => {
+      // Get the challenger's profile
+      const challengerProfile = await ctx.db.userProfile.findUnique({
+        where: { userId: ctx.session.user.id },
+      });
+
+      if (!challengerProfile) {
+        throw new Error("Your profile not found. Please create a profile first.");
+      }
+
+      // Find the target user by username
+      const targetProfile = await ctx.db.userProfile.findUnique({
+        where: { username: input.username },
+      });
+
+      if (!targetProfile) {
+        throw new Error(`User with username '${input.username}' not found`);
+      }
+
+      // Create the challenge with the target user directly linked
+      return ctx.db.challenge.create({
+        data: {
+          challengerId: challengerProfile.id,
+          challengedId: targetProfile.id,
+          status: "PENDING",
+        },
+        include: {
+          challenged: {
+            select: {
+              username: true,
+            },
+          },
+        },
+      });
+    }),
+
   // Get a challenge by ID
   getChallenge: publicProcedure
     .input(z.object({

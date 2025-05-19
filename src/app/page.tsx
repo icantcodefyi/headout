@@ -14,9 +14,11 @@ import { Separator } from '~/components/ui/separator';
 import { toast } from 'sonner';
 import { signIn, useSession } from 'next-auth/react';
 import { Confetti } from '~/components/confetti';
+import { SadFace } from '~/components/sad-face';
 import { Badge } from '~/components/ui/badge';
 import { Avatar, AvatarFallback, AvatarImage } from '~/components/ui/avatar';
-import { Loader2, Sword } from 'lucide-react';
+import { Loader2, Sword, Users, Share2, Copy, MessageCircle } from 'lucide-react';
+import { motion } from 'motion/react';
 
 export default function Home() {
 	const router = useRouter();
@@ -25,8 +27,14 @@ export default function Home() {
 	const [usernameInput, setUsernameInput] = useState('');
 	const [showUsernameModal, setShowUsernameModal] = useState(false);
 	const [showConfetti, setShowConfetti] = useState(false);
+	const [showSadFace, setShowSadFace] = useState(false);
 	const [isLoadingAnswer, setIsLoadingAnswer] = useState(false);
 	const previousDestinationsRef = useRef<string[]>([]);
+	const [showChallengeModal, setShowChallengeModal] = useState(false);
+	const [shareUrl, setShareUrl] = useState('');
+	const [isSendingChallenge, setIsSendingChallenge] = useState(false);
+	const [showShareModal, setShowShareModal] = useState(false);
+	const [friendUsername, setFriendUsername] = useState('');
 
 	// Track seen destinations to avoid repetition
 	useEffect(() => {
@@ -100,6 +108,9 @@ export default function Home() {
 				if (data.isCorrect) {
 					setShowConfetti(true);
 					setTimeout(() => setShowConfetti(false), 3000);
+				} else {
+					setShowSadFace(true);
+					setTimeout(() => setShowSadFace(false), 3000);
 				}
 			}
 			setIsLoadingAnswer(false);
@@ -162,8 +173,60 @@ export default function Home() {
 		dispatch({ type: 'NEXT_QUESTION' });
 	}, [dispatch, getRandomDestination]);
 
-	// Handle challenge a friend (now redirects to multiplayer)
+	// Challenge a friend - now creates a shareable link
+	const createChallengeMutation = api.game.createChallenge.useMutation({
+		onSuccess: (data) => {
+			setIsSendingChallenge(false);
+			// Generate the share URL with the challenge ID
+			const challengeUrl = `${window.location.origin}/challenge/${data.id}`;
+			setShareUrl(challengeUrl);
+			
+			// Close challenge modal and open share modal
+			setShowChallengeModal(false);
+			setShowShareModal(true);
+		},
+		onError: (error) => {
+			setIsSendingChallenge(false);
+			toast.error("Failed to create challenge", {
+				description: error.message,
+			});
+		}
+	});
+
+	// Copy link to clipboard
+	const copyToClipboard = () => {
+		navigator.clipboard.writeText(shareUrl).then(() => {
+			toast.success("Link copied to clipboard!");
+		}).catch(() => {
+			toast.error("Failed to copy link");
+		});
+	};
+
+	// Share to WhatsApp
+	const shareToWhatsApp = () => {
+		const message = `Hey! I challenge you to beat my score in Globetrotter! Click here to play: ${shareUrl}`;
+		const whatsappUrl = `https://wa.me/?text=${encodeURIComponent(message)}`;
+		window.open(whatsappUrl, '_blank');
+	};
+
+	// Handle challenge a friend
 	const handleChallengeAFriend = useCallback(() => {
+		if (!username) {
+			// If user doesn't have a username, show the username modal first
+			toast.info("Create a profile first", {
+				description: "You need to set a username before challenging friends",
+			});
+			setShowUsernameModal(true);
+			return;
+		}
+		
+		// Create a challenge immediately
+		setIsSendingChallenge(true);
+		createChallengeMutation.mutate({});
+	}, [username, createChallengeMutation]);
+
+	// Handle multiplayer navigation
+	const handleMultiplayer = useCallback(() => {
 		router.push('/multiplayer');
 	}, [router]);
 
@@ -179,6 +242,28 @@ export default function Home() {
 	const handleSignIn = useCallback(() => {
 		signIn('google');
 	}, []);
+
+	// Handle 1v1 challenge submission
+	const handleDirectChallengeSubmit = useCallback((e: React.FormEvent) => {
+		e.preventDefault();
+		if (friendUsername.length < 3) return;
+		
+		setIsSendingChallenge(true);
+		createChallengeMutation.mutate({ username: friendUsername });
+	}, [friendUsername, createChallengeMutation]);
+
+	// Handle challenge a friend modal
+	const handleShowChallengeModal = useCallback(() => {
+		if (!username) {
+			// If user doesn't have a username, show the username modal first
+			toast.info("Create a profile first", {
+				description: "You need to set a username before challenging friends",
+			});
+			setShowUsernameModal(true);
+			return;
+		}
+		setShowChallengeModal(true);
+	}, [username]);
 
 	return (
 		<div className="flex min-h-screen flex-col items-center justify-center bg-background p-4 text-foreground md:p-8">
@@ -359,26 +444,80 @@ export default function Home() {
 							<div>
 								<CardHeader className="flex flex-col items-center pb-0">
 									{state.result.isCorrect ? (
-										<div className="mb-4 rounded-full bg-green-100 p-3 text-green-500 dark:bg-green-900/30">
-											<svg xmlns="http://www.w3.org/2000/svg" className="h-10 w-10" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+										<motion.div 
+											className="mb-4 rounded-full bg-green-100 p-3 text-green-500 dark:bg-green-900/30"
+											initial={{ scale: 0.5, opacity: 0 }}
+											animate={{ 
+												scale: [0.5, 1.2, 1],
+												opacity: 1,
+												rotate: [0, 10, -10, 0]
+											}}
+											transition={{ duration: 0.6 }}
+										>
+											<motion.svg 
+												xmlns="http://www.w3.org/2000/svg" 
+												className="h-10 w-10" 
+												fill="none" 
+												viewBox="0 0 24 24" 
+												stroke="currentColor"
+												initial={{ pathLength: 0 }}
+												animate={{ pathLength: 1 }}
+												transition={{ duration: 0.6, delay: 0.2 }}
+											>
 												<path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-											</svg>
-										</div>
+											</motion.svg>
+										</motion.div>
 									) : (
-										<div className="mb-4 rounded-full bg-red-100 p-3 text-red-500 dark:bg-red-900/30">
-											<svg xmlns="http://www.w3.org/2000/svg" className="h-10 w-10" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+										<motion.div 
+											className="mb-4 rounded-full bg-red-100 p-3 text-red-500 dark:bg-red-900/30"
+											initial={{ scale: 0.5, opacity: 0 }}
+											animate={{ 
+												scale: [0.5, 1.2, 1],
+												opacity: 1,
+												rotate: [0, -10, 10, 0]
+											}}
+											transition={{ duration: 0.6 }}
+										>
+											<motion.svg 
+												xmlns="http://www.w3.org/2000/svg" 
+												className="h-10 w-10" 
+												fill="none" 
+												viewBox="0 0 24 24" 
+												stroke="currentColor"
+												initial={{ pathLength: 0 }}
+												animate={{ pathLength: 1 }}
+												transition={{ duration: 0.6, delay: 0.2 }}
+											>
 												<path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-											</svg>
-										</div>
+											</motion.svg>
+										</motion.div>
 									)}
 
-									<CardTitle className="mb-2 text-center text-xl">
-										{state.result.isCorrect ? "Correct!" : "Oops! Wrong answer."}
-									</CardTitle>
+									<motion.div
+										initial={{ y: -20, opacity: 0 }}
+										animate={{ y: 0, opacity: 1 }}
+										transition={{ duration: 0.5 }}
+									>
+										<CardTitle className="mb-2 text-center text-xl">
+											{state.result.isCorrect ? "Correct!" : "Oops! Wrong answer."}
+										</CardTitle>
+									</motion.div>
 								
-									<p className="mb-2 text-center text-lg">
-										It's <span className="font-bold">{state.result.destination?.city}, {state.result.destination?.country}</span>
-									</p>
+									<motion.p 
+										className="mb-2 text-center text-lg"
+										initial={{ scale: 0.8, opacity: 0 }}
+										animate={{ scale: 1, opacity: 1 }}
+										transition={{ duration: 0.5, delay: 0.2 }}
+									>
+										It's <motion.span 
+											className="font-bold"
+											initial={{ color: "#6366F1" }}
+											animate={{ color: state.result.isCorrect ? "#10B981" : "#EF4444" }}
+											transition={{ duration: 0.8 }}
+										>
+											{state.result.destination?.city}, {state.result.destination?.country}
+										</motion.span>
+									</motion.p>
 								</CardHeader>
 								
 								<CardContent className="space-y-4">
@@ -395,14 +534,35 @@ export default function Home() {
 										</div>
 									)}
 
-									<div className="rounded-lg bg-muted p-4 text-sm shadow-inner">
+									<motion.div 
+										initial={{ opacity: 0, y: 20 }}
+										animate={{ opacity: 1, y: 0 }}
+										transition={{ delay: 0.3, duration: 0.5 }}
+										className="rounded-lg bg-muted p-4 text-sm shadow-inner"
+									>
 										<div className="flex items-start gap-2">
-											<svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 flex-shrink-0 text-primary" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+											<motion.svg 
+												xmlns="http://www.w3.org/2000/svg" 
+												className="h-5 w-5 flex-shrink-0 text-primary" 
+												fill="none" 
+												viewBox="0 0 24 24" 
+												stroke="currentColor"
+												initial={{ rotate: -10, scale: 0.8 }}
+												animate={{ rotate: [0, -10, 0, 10, 0], scale: [0.8, 1.2, 1] }}
+												transition={{ duration: 0.8 }}
+											>
 												<path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-											</svg>
-											<p className="italic">{state.result.fact}</p>
+											</motion.svg>
+											<motion.p 
+												className="italic"
+												initial={{ opacity: 0 }}
+												animate={{ opacity: 1 }}
+												transition={{ delay: 0.5, duration: 0.5 }}
+											>
+												{state.result.fact}
+											</motion.p>
 										</div>
-									</div>
+									</motion.div>
 								</CardContent>
 								
 								<CardFooter>
@@ -418,16 +578,26 @@ export default function Home() {
 					</Card>
 				)}
 
-				{/* Challenge Button - now redirects to multiplayer */}
+				{/* Challenge and Multiplayer Buttons */}
 				{state.isPlaying && (
-					<Button
-						onClick={handleChallengeAFriend}
-						variant="outline"
-						className="w-full"
-					>
-						<Sword className="mr-2 h-4 w-4" />
-						Challenge a Friend
-					</Button>
+					<div className="grid grid-cols-2 gap-2">
+						<Button
+							onClick={handleChallengeAFriend}
+							variant="outline"
+							className="group flex w-full items-center justify-center"
+						>
+							<Share2 className="mr-2 h-4 w-4 transition-transform group-hover:scale-110" />
+							Challenge Friend
+						</Button>
+						<Button
+							onClick={handleMultiplayer}
+							variant="outline"
+							className="group flex w-full items-center justify-center"
+						>
+							<Sword className="mr-2 h-4 w-4 transition-transform group-hover:rotate-12" />
+							Multiplayer
+						</Button>
+					</div>
 				)}
 
 				{/* Username Modal */}
@@ -459,10 +629,78 @@ export default function Home() {
 						</form>
 					</DialogContent>
 				</Dialog>
+
+				{/* Share Challenge Modal */}
+				<Dialog open={showShareModal} onOpenChange={setShowShareModal}>
+					<DialogContent>
+						<DialogHeader>
+							<DialogTitle>Challenge Created!</DialogTitle>
+							<DialogDescription>
+								Share this challenge with your friends. They'll see your score and try to beat it!
+							</DialogDescription>
+						</DialogHeader>
+						
+						<div className="mb-4 rounded-lg bg-muted p-4">
+							<div className="relative mb-3 h-32 w-full overflow-hidden rounded bg-gradient-to-r from-blue-500 to-purple-500">
+								<div className="absolute inset-0 flex flex-col items-center justify-center p-4 text-white">
+									<h3 className="mb-1 text-lg font-bold">Globetrotter Challenge</h3>
+									<p className="text-center text-sm">
+										{username} challenges you!
+									</p>
+									<div className="mt-2 flex items-center gap-2">
+										<div className="rounded bg-white/20 p-1 text-xs">
+											Score: {state.score.total}
+										</div>
+										<div className="rounded bg-green-500/20 p-1 text-xs">
+											Correct: {state.score.correct}
+										</div>
+										<div className="rounded bg-red-500/20 p-1 text-xs">
+											Wrong: {state.score.wrong}
+										</div>
+									</div>
+								</div>
+							</div>
+							
+							<div className="relative">
+								<Input 
+									value={shareUrl}
+									readOnly
+									className="pr-24"
+								/>
+								<Button
+									size="sm"
+									className="absolute right-0 top-0 h-full rounded-l-none"
+									onClick={copyToClipboard}
+								>
+									<Copy className="mr-2 h-4 w-4" />
+									Copy
+								</Button>
+							</div>
+						</div>
+						
+						<DialogFooter className="flex-col sm:flex-col">
+							<Button 
+								className="w-full bg-green-500 text-white hover:bg-green-600"
+								onClick={shareToWhatsApp}
+							>
+								<MessageCircle className="mr-2 h-5 w-5" />
+								Share via WhatsApp
+							</Button>
+							<Button 
+								variant="outline" 
+								className="mt-2 w-full"
+								onClick={() => setShowShareModal(false)}
+							>
+								Close
+							</Button>
+						</DialogFooter>
+					</DialogContent>
+				</Dialog>
 			</div>
 			
-			{/* Confetti animation for correct answers */}
+			{/* Animations for answers */}
 			{showConfetti && <Confetti />}
+			{showSadFace && <SadFace />}
 		</div>
 	);
 }
