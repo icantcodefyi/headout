@@ -4,6 +4,8 @@ import { Badge } from '~/components/ui/badge';
 import { Card } from '~/components/ui/card';
 import { ClipboardCopy, UserIcon, PlayIcon, CrownIcon } from 'lucide-react';
 import { toast } from 'sonner';
+import { Avatar, AvatarImage, AvatarFallback } from '~/components/ui/avatar';
+import { useSession } from 'next-auth/react';
 
 // Define types to match multiplayer-context.tsx
 type GameRoom = {
@@ -24,6 +26,7 @@ type Player = {
   score: number;
   correctAnswers: number;
   wrongAnswers: number;
+  image?: string; // Add image property to Player type
 };
 
 interface WaitingRoomProps {
@@ -44,6 +47,7 @@ export function WaitingRoom({
   onLeaveRoom
 }: WaitingRoomProps) {
   const [copied, setCopied] = useState(false);
+  const { data: session } = useSession();
   
   const players = room.players || [];
   const currentPlayer = players.find((p) => p.id === playerId);
@@ -91,7 +95,7 @@ export function WaitingRoom({
           {players.map((player) => {
             const isCurrentPlayer = player.id === playerId;
             // First player is considered the admin (index 0)
-            const isPlayerAdmin = player.id === players[0]?.id;
+            const isPlayerAdmin = player.isAdmin || player.id === players[0]?.id;
             
             return (
               <Card key={player.id} className={`rounded-lg border p-4 transition-all ${
@@ -101,19 +105,18 @@ export function WaitingRoom({
               }`}>
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-2">
-                    <div className={`flex h-9 w-9 items-center justify-center rounded-full ${
-                      isPlayerAdmin 
-                        ? 'bg-yellow-100 text-yellow-600 dark:bg-yellow-900/50 dark:text-yellow-300' 
-                        : 'bg-green-100 text-green-600 dark:bg-green-900/50 dark:text-green-300'
-                    }`}>
-                      {isPlayerAdmin ? (
-                        <CrownIcon className="h-4 w-4" />
+                    <Avatar className={isPlayerAdmin ? "ring-2 ring-yellow-400 dark:ring-yellow-500" : ""}>
+                      {player.image ? (
+                        <AvatarImage src={player.image} alt={player.username} />
                       ) : (
-                        <span className="text-sm font-semibold">
+                        <AvatarFallback className={isPlayerAdmin 
+                          ? "bg-yellow-100 text-yellow-600 dark:bg-yellow-900/50 dark:text-yellow-300"
+                          : "bg-green-100 text-green-600 dark:bg-green-900/50 dark:text-green-300"
+                        }>
                           {player.username.charAt(0).toUpperCase()}
-                        </span>
+                        </AvatarFallback>
                       )}
-                    </div>
+                    </Avatar>
                     <div>
                       <span className="font-medium">
                         {player.username} {isCurrentPlayer ? '(You)' : ''}
@@ -123,9 +126,14 @@ export function WaitingRoom({
                       )}
                     </div>
                   </div>
-                  <Badge variant={player.isReady ? "success" : "outline"}>
-                    {player.isReady ? 'Ready' : 'Not Ready'}
-                  </Badge>
+                  <div className="flex items-center gap-2">
+                    {isPlayerAdmin && (
+                      <CrownIcon className="h-5 w-5 text-yellow-500" />
+                    )}
+                    <Badge variant={player.isReady ? "success" : "outline"}>
+                      {player.isReady ? 'Ready' : 'Not Ready'}
+                    </Badge>
+                  </div>
                 </div>
               </Card>
             );

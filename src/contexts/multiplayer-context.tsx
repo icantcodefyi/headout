@@ -14,6 +14,7 @@ type Player = {
   score: number;
   correctAnswers: number;
   wrongAnswers: number;
+  image?: string;
 };
 
 type GameRoom = {
@@ -351,6 +352,20 @@ export function MultiplayerProvider({ children }: { children: ReactNode }) {
     
     console.log('Joining room', roomId || 'new room', 'as', username);
     
+    // Get user profile image from sessionStorage or localStorage if available
+    let userImage;
+    if (typeof window !== 'undefined') {
+      try {
+        const sessionData = sessionStorage.getItem('user-session') || localStorage.getItem('user-session');
+        if (sessionData) {
+          const userData = JSON.parse(sessionData);
+          userImage = userData?.user?.image;
+        }
+      } catch (e) {
+        console.error('Error accessing session data:', e);
+      }
+    }
+    
     // Join or create room
     state.socket.emit('join_room', {
       roomId,
@@ -358,7 +373,8 @@ export function MultiplayerProvider({ children }: { children: ReactNode }) {
       username,
       userId, // Pass userId for authentication
       // Creating a new room means this player is the admin
-      isAdmin: !roomId
+      isAdmin: !roomId,
+      image: userImage, // Add the user image
     });
     
     // Save player ID

@@ -1,8 +1,9 @@
 import { useState, useEffect } from 'react';
 import { Button } from '~/components/ui/button';
 import { Badge } from '~/components/ui/badge';
-import { TimerIcon } from 'lucide-react';
+import { TimerIcon, CrownIcon } from 'lucide-react';
 import { cn } from '~/lib/utils';
+import { Avatar, AvatarImage, AvatarFallback } from '~/components/ui/avatar';
 
 // Define types to match multiplayer-context.tsx
 type GameRoom = {
@@ -23,6 +24,7 @@ type Player = {
   score: number;
   correctAnswers: number;
   wrongAnswers: number;
+  image?: string;
 };
 
 type AnswerResult = {
@@ -81,8 +83,21 @@ export function GameBoard({
           {/* Current player score */}
           <div className="flex items-center justify-between rounded-md bg-blue-100 p-2 dark:bg-blue-900/40">
             <div className="flex items-center gap-2">
-              <div className="flex h-8 w-8 items-center justify-center rounded-full bg-blue-200 dark:bg-blue-800">
-                <span className="text-sm font-semibold">{currentPlayer?.username.charAt(0).toUpperCase()}</span>
+              <div className="relative">
+                <Avatar className={currentPlayer?.isAdmin ? "ring-2 ring-yellow-400 dark:ring-yellow-500" : ""}>
+                  {currentPlayer?.image ? (
+                    <AvatarImage src={currentPlayer.image} alt={currentPlayer?.username || "You"} />
+                  ) : (
+                    <AvatarFallback className="bg-blue-200 text-blue-700 dark:bg-blue-800 dark:text-blue-200">
+                      {currentPlayer?.username.charAt(0).toUpperCase()}
+                    </AvatarFallback>
+                  )}
+                </Avatar>
+                {currentPlayer?.isAdmin && (
+                  <div className="absolute -top-1 -right-1">
+                    <CrownIcon className="h-4 w-4 text-yellow-500" />
+                  </div>
+                )}
               </div>
               <span className="font-medium">{currentPlayer?.username} (You)</span>
             </div>
@@ -96,8 +111,21 @@ export function GameBoard({
               className="flex items-center justify-between rounded-md bg-gray-100 p-2 dark:bg-gray-800"
             >
               <div className="flex items-center gap-2">
-                <div className="flex h-8 w-8 items-center justify-center rounded-full bg-gray-200 dark:bg-gray-700">
-                  <span className="text-sm font-semibold">{player.username.charAt(0).toUpperCase()}</span>
+                <div className="relative">
+                  <Avatar className={player.isAdmin ? "ring-2 ring-yellow-400 dark:ring-yellow-500" : ""}>
+                    {player.image ? (
+                      <AvatarImage src={player.image} alt={player.username} />
+                    ) : (
+                      <AvatarFallback className="bg-gray-200 text-gray-700 dark:bg-gray-700 dark:text-gray-200">
+                        {player.username.charAt(0).toUpperCase()}
+                      </AvatarFallback>
+                    )}
+                  </Avatar>
+                  {player.isAdmin && (
+                    <div className="absolute -top-1 -right-1">
+                      <CrownIcon className="h-4 w-4 text-yellow-500" />
+                    </div>
+                  )}
                 </div>
                 <span className="font-medium">{player.username}</span>
               </div>

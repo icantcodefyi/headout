@@ -18,9 +18,11 @@ interface Player {
   socketId: string;
   username: string;
   isReady: boolean;
+  isAdmin?: boolean;
   score: number;
   correctAnswers: number;
   wrongAnswers: number;
+  image?: string;
 }
 
 interface DestinationData {
@@ -44,6 +46,7 @@ const joinRoomSchema = z.object({
   username: z.string(),
   userId: z.string().optional(),
   isAdmin: z.boolean().optional(),
+  image: z.string().optional(),
 });
 
 const answerSchema = z.object({
@@ -67,7 +70,7 @@ export function initSocketServer(httpServer: HTTPServer) {
     // Create or join a game room
     socket.on('join_room', async (data) => {
       try {
-        const { roomId, playerId, username, userId, isAdmin } = joinRoomSchema.parse(data);
+        const { roomId, playerId, username, userId, isAdmin, image } = joinRoomSchema.parse(data);
         
         // Require userId for authentication
         if (!userId) {
@@ -108,9 +111,11 @@ export function initSocketServer(httpServer: HTTPServer) {
             socketId: socket.id,
             username,
             isReady: false,
+            isAdmin: isAdmin || false,
             score: 0,
             correctAnswers: 0,
             wrongAnswers: 0,
+            image,
           };
           
           room.players.push(newPlayer);
@@ -131,9 +136,11 @@ export function initSocketServer(httpServer: HTTPServer) {
                 socketId: socket.id,
                 username,
                 isReady: false,
+                isAdmin: isAdmin || true,
                 score: 0,
                 correctAnswers: 0,
                 wrongAnswers: 0,
+                image,
               },
             ],
             currentDestination: null,

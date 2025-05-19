@@ -116,7 +116,16 @@ export function MultiplayerContent({ username }: MultiplayerContentProps) {
       toast.error('Authentication error');
       return;
     }
-    joinRoom(username, undefined, session.user.id);
+    // Create a modified joinRoom function to pass the user's image
+    const userImage = session.user.image || undefined;
+    state.socket?.emit('join_room', {
+      roomId: undefined, // No room ID for creating a new room
+      playerId: state.playerId || `player_${Date.now()}`,
+      username,
+      userId: session.user.id,
+      isAdmin: true, // Admin for new room
+      image: userImage, // Pass image from session
+    });
   };
   
   // Handle joining an existing room
@@ -131,7 +140,16 @@ export function MultiplayerContent({ username }: MultiplayerContentProps) {
       return;
     }
     
-    joinRoom(username, joinRoomId, session.user.id);
+    // Join the room with image
+    const userImage = session.user.image || undefined;
+    state.socket?.emit('join_room', {
+      roomId: joinRoomId,
+      playerId: state.playerId || `player_${Date.now()}`,
+      username,
+      userId: session.user.id,
+      isAdmin: false,
+      image: userImage, // Pass image from session
+    });
   };
   
   // Copy room ID to clipboard

@@ -8,6 +8,8 @@ export const metadata: Metadata = {
 
 export default function MultiplayerPage() {
   return (
-    <MultiplayerGame />
+    <div className="flex flex-col items-center justify-center h-screen">
+      <MultiplayerGame />
+    </div>
   );
 } 
