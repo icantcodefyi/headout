@@ -3,6 +3,7 @@ import "~/styles/globals.css";
 import type { Metadata } from "next";
 import { Architects_Daughter } from "next/font/google";
 import { GameProvider } from "~/contexts/game-context";
+import { MultiplayerProvider } from "~/contexts/multiplayer-context";
 import { TRPCReactProvider } from "~/trpc/react";
 import { Toaster } from "~/components/ui/sonner";
 import { SessionProvider } from "next-auth/react";
@@ -28,10 +29,12 @@ export default function RootLayout({
 				<SessionProvider>
 					<TRPCReactProvider>
 						<GameProvider>
-							{children}
-							<Toaster richColors position="top-right" />
+							<MultiplayerProvider>
+								{children}
+								<Toaster richColors position="top-right" />
+							</MultiplayerProvider>
 						</GameProvider>
-						</TRPCReactProvider>
+					</TRPCReactProvider>
 				</SessionProvider>
 			</body>
 		</html>

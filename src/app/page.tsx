@@ -16,6 +16,7 @@ import { signIn, useSession } from 'next-auth/react';
 import { Confetti } from '~/components/confetti';
 import { Badge } from '~/components/ui/badge';
 import { Avatar, AvatarFallback, AvatarImage } from '~/components/ui/avatar';
+import { Sword } from 'lucide-react';
 
 export default function Home() {
 	const router = useRouter();
@@ -283,6 +284,17 @@ export default function Home() {
 								>
 									Start Game
 								</Button>
+								
+								<Button
+									onClick={() => router.push('/multiplayer')}
+									variant="outline"
+									size="lg"
+									className="w-full border-blue-300 bg-blue-50 font-medium text-blue-600 transition-all duration-300 hover:bg-blue-100 hover:shadow-md dark:border-blue-800 dark:bg-blue-900/20 dark:text-blue-400 dark:hover:bg-blue-900/30"
+								>
+									<Sword className="mr-2 h-4 w-4" />
+									Real-time Multiplayer
+								</Button>
+								
 								{state.challenge && (
 									<div className="mb-4 rounded-lg bg-blue-50 p-3 text-center dark:bg-blue-900/20">
 										<p className="mb-2 text-sm text-muted-foreground">

@@ -14,9 +14,12 @@
 		"db:studio": "prisma studio",
 		"db:seed": "tsx prisma/seed.ts",
 		"dev": "next dev --turbo",
+		"dev:socket": "bun --watch src/server/socket-start.ts",
+		"dev:full": "bun --watch src/server/index.ts",
+		"socket": "bun run src/server/socket-start.ts",
 		"postinstall": "prisma generate",
-		"preview": "next build && next start",
-		"start": "next start",
+		"preview": "next build && bun src/server/index.ts",
+		"start": "NODE_ENV=production bun src/server/index.ts",
 		"typecheck": "tsc --noEmit"
 	},
 	"dependencies": {
@@ -72,6 +75,8 @@
 		"react-resizable-panels": "^3.0.2",
 		"recharts": "^2.15.3",
 		"server-only": "^0.0.1",
+		"socket.io": "^4.8.1",
+		"socket.io-client": "^4.8.1",
 		"sonner": "^2.0.3",
 		"superjson": "^2.2.1",
 		"tailwind-merge": "^3.3.0",
