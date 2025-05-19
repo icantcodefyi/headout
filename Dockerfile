@@ -9,20 +9,17 @@ RUN apt-get update && apt-get install -y openssl libssl-dev
 RUN curl -fsSL https://bun.sh/install | bash
 ENV PATH="/root/.bun/bin:${PATH}"
 
-# Copy package files and lock file
-COPY package.json bun.lockb ./
+# Copy the entire application
+COPY . .
 
 # Use Bun to install dependencies
 RUN bun install
 
-# Copy the rest of the application
-COPY . .
-
 # Build the Next.js application
 RUN bun run build
 
-# Generate Prisma client
-RUN bun run postinstall
+# Generate Prisma client explicitly
+RUN bunx prisma generate
 
 # Set production environment
 ENV NODE_ENV=production
