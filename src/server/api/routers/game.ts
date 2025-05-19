@@ -226,8 +226,14 @@ export const gameRouter = createTRPCRouter({
 
   // Create a challenge
   createChallenge: protectedProcedure
-    .input(z.object({}).optional())
-    .mutation(async ({ ctx }) => {
+    .input(z.object({
+      currentScore: z.object({
+        correct: z.number(),
+        wrong: z.number(),
+        total: z.number()
+      })
+    }).optional())
+    .mutation(async ({ ctx, input }) => {
       const profile = await ctx.db.userProfile.findUnique({
         where: { userId: ctx.session.user.id },
       });
@@ -236,10 +242,23 @@ export const gameRouter = createTRPCRouter({
         throw new Error("Profile not found");
       }
 
+      // Use current game session score if provided, otherwise use profile totals
+      const challengeData = {
+        challengerId: profile.id,
+        sessionScore: input?.currentScore ? input.currentScore.total : profile.totalScore,
+        sessionCorrect: input?.currentScore ? input.currentScore.correct : profile.correctCount,
+        sessionWrong: input?.currentScore ? input.currentScore.wrong : profile.wrongCount,
+      };
+
       return ctx.db.challenge.create({
-        data: {
-          challengerId: profile.id,
-        },
+        data: challengeData,
+        include: {
+          challenger: {
+            select: {
+              username: true
+            }
+          }
+        }
       });
     }),
 
@@ -292,7 +311,12 @@ export const gameRouter = createTRPCRouter({
     .query(async ({ ctx, input }) => {
       return ctx.db.challenge.findUnique({
         where: { id: input.id },
-        include: {
+        select: {
+          id: true,
+          status: true,
+          sessionScore: true,
+          sessionCorrect: true,
+          sessionWrong: true,
           challenger: {
             select: {
               id: true,

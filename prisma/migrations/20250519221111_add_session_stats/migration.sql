@@ -1,0 +1,4 @@
+-- AlterTable
+ALTER TABLE "Challenge" ADD COLUMN     "sessionCorrect" INTEGER NOT NULL DEFAULT 0,
+ADD COLUMN     "sessionScore" INTEGER NOT NULL DEFAULT 0,
+ADD COLUMN     "sessionWrong" INTEGER NOT NULL DEFAULT 0;

@@ -8,6 +8,7 @@ import { Button } from '~/components/ui/button';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '~/components/ui/card';
 import { Skeleton } from '~/components/ui/skeleton';
 import { toast } from 'sonner';
+import { motion } from 'framer-motion';
 
 export default function ChallengePage({
   params
@@ -31,9 +32,9 @@ export default function ChallengePage({
           id: id,
           challenger: {
             username: challengeQuery.data.challenger.username,
-            totalScore: challengeQuery.data.challenger.totalScore,
-            correctCount: challengeQuery.data.challenger.correctCount,
-            wrongCount: challengeQuery.data.challenger.wrongCount
+            totalScore: challengeQuery.data.sessionScore ?? challengeQuery.data.challenger.totalScore,
+            correctCount: challengeQuery.data.sessionCorrect ?? challengeQuery.data.challenger.correctCount,
+            wrongCount: challengeQuery.data.sessionWrong ?? challengeQuery.data.challenger.wrongCount
           }
         }
       });
@@ -83,23 +84,49 @@ export default function ChallengePage({
           )}
           
           {challengeQuery.data && (
-            <div className="rounded-lg bg-blue-50 p-4 text-center dark:bg-gray-800">
+            <motion.div 
+              className="rounded-lg bg-blue-50 p-4 text-center dark:bg-gray-800"
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.5 }}
+            >
               <h3 className="mb-4 text-lg font-semibold">Challenger Stats</h3>
               <div className="grid grid-cols-3 gap-2">
-                <div className="rounded-md bg-white p-2 text-center shadow-sm dark:bg-gray-700">
+                <motion.div 
+                  className="rounded-md bg-white p-2 text-center shadow-sm dark:bg-gray-700"
+                  initial={{ scale: 0.8, opacity: 0 }}
+                  animate={{ scale: 1, opacity: 1 }}
+                  transition={{ duration: 0.3, delay: 0.1 }}
+                >
                   <p className="text-xs text-muted-foreground">Correct</p>
-                  <p className="text-xl font-bold text-green-500">{challengeQuery.data.challenger.correctCount}</p>
-                </div>
-                <div className="rounded-md bg-white p-2 text-center shadow-sm dark:bg-gray-700">
+                  <p className="text-xl font-bold text-green-500">
+                    {challengeQuery.data.sessionCorrect ?? challengeQuery.data.challenger.correctCount}
+                  </p>
+                </motion.div>
+                <motion.div 
+                  className="rounded-md bg-white p-2 text-center shadow-sm dark:bg-gray-700"
+                  initial={{ scale: 0.8, opacity: 0 }}
+                  animate={{ scale: 1, opacity: 1 }}
+                  transition={{ duration: 0.3, delay: 0.2 }}
+                >
                   <p className="text-xs text-muted-foreground">Wrong</p>
-                  <p className="text-xl font-bold text-red-500">{challengeQuery.data.challenger.wrongCount}</p>
-                </div>
-                <div className="rounded-md bg-white p-2 text-center shadow-sm dark:bg-gray-700">
+                  <p className="text-xl font-bold text-red-500">
+                    {challengeQuery.data.sessionWrong ?? challengeQuery.data.challenger.wrongCount}
+                  </p>
+                </motion.div>
+                <motion.div 
+                  className="rounded-md bg-white p-2 text-center shadow-sm dark:bg-gray-700"
+                  initial={{ scale: 0.8, opacity: 0 }}
+                  animate={{ scale: 1, opacity: 1 }}
+                  transition={{ duration: 0.3, delay: 0.3 }}
+                >
                   <p className="text-xs text-muted-foreground">Score</p>
-                  <p className="text-xl font-bold text-blue-500">{challengeQuery.data.challenger.totalScore}</p>
-                </div>
+                  <p className="text-xl font-bold text-blue-500">
+                    {challengeQuery.data.sessionScore ?? challengeQuery.data.challenger.totalScore}
+                  </p>
+                </motion.div>
               </div>
-            </div>
+            </motion.div>
           )}
           
           {challengeQuery.isError && (

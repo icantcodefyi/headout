@@ -220,10 +220,16 @@ export default function Home() {
 			return;
 		}
 		
-		// Create a challenge immediately
+		// Create a challenge immediately with current game session scores
 		setIsSendingChallenge(true);
-		createChallengeMutation.mutate({});
-	}, [username, createChallengeMutation]);
+		createChallengeMutation.mutate({
+			currentScore: {
+				correct: state.score.correct,
+				wrong: state.score.wrong,
+				total: state.score.total
+			}
+		});
+	}, [username, createChallengeMutation, state.score]);
 
 	// Handle multiplayer navigation
 	const handleMultiplayer = useCallback(() => {
@@ -249,8 +255,14 @@ export default function Home() {
 		if (friendUsername.length < 3) return;
 		
 		setIsSendingChallenge(true);
-		createChallengeMutation.mutate({ username: friendUsername });
-	}, [friendUsername, createChallengeMutation]);
+		createChallengeMutation.mutate({
+			currentScore: {
+				correct: state.score.correct,
+				wrong: state.score.wrong,
+				total: state.score.total
+			}
+		});
+	}, [friendUsername, createChallengeMutation, state.score]);
 
 	// Handle challenge a friend modal
 	const handleShowChallengeModal = useCallback(() => {

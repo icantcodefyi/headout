@@ -105,6 +105,9 @@ model Challenge {
     challengerId String
     challengedId String?
     status       String       @default("PENDING") // PENDING, ACCEPTED, COMPLETED
+    sessionScore Int          @default(0) // Current game session score
+    sessionCorrect Int        @default(0) // Current game session correct answers
+    sessionWrong Int          @default(0) // Current game session wrong answers
     createdAt    DateTime     @default(now())
     updatedAt    DateTime     @updatedAt
     challenger   UserProfile  @relation("Challenger", fields: [challengerId], references: [id])
