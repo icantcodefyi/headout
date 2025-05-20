@@ -2,22 +2,9 @@
 
 Globetrotter is a fun and engaging full-stack web application where users get cryptic clues about famous places around the world and must guess which destination they refer to. Upon guessing, users unlock fun facts, trivia, and surprises about each destination!
 
-## 🔹 Features
-
-- **Rich Dataset**: 100+ destinations with cryptic clues, fun facts, and trivia
-- **Interactive Gameplay**: Users receive clues and select from multiple possible destinations
-- **Real-time Feedback**: 
-  - 🎉 Correct Answer: Animate confetti + reveal a fun fact
-  - 😢 Incorrect Answer: Show a sad-face animation + reveal a fun fact
-- **Score Tracking**: Track correct and incorrect answers with a total score
-- **"Challenge a Friend" Feature**: Generate shareable challenge links to compete with friends
-- **User Profiles**: Create a unique username to save scores and track your progress
-- **Mobile Responsive**: Fully optimized for mobile and desktop devices
-- **Multiplayer Mode**: Play with friends in real-time via Socket.IO
-
 ## 🔹 Tech Stack
 
-- **Frontend**: Next.js 14 with App Router, TypeScript, TailwindCSS, shadcn/ui
+- **Frontend**: Next.js 15 with App Router, TypeScript, TailwindCSS, shadcn/ui
 - **Backend**: tRPC for type-safe API calls, Prisma ORM
 - **Authentication**: NextAuth.js with Google provider
 - **Database**: PostgreSQL
@@ -172,13 +159,3 @@ Quick deployment options:
 - `bun db:migrate` - Apply database migrations
 - `bun db:seed` - Seed the database with initial data
 - `bun db:studio` - Open Prisma Studio to manage database data
-
-## 🔹 License
-
-This project is licensed under the MIT License - see the LICENSE file for details.
-
-## 🔹 Acknowledgements
-
-- Images sourced from Unsplash
-- Travel facts verified from multiple trusted sources
-- Built with ❤️ for travelers and geography enthusiasts everywhere
