@@ -1,14 +1,10 @@
 import { createServer } from 'http';
 import { parse } from 'url';
 import next from 'next';
-import { initializeSocketServer } from './socket-init';
 
 const dev = process.env.NODE_ENV !== 'production';
 const hostname = 'localhost';
 const port = 3000;
-
-// Start the Socket.IO server separately on port 5000
-initializeSocketServer();
 
 // Create the Next.js app
 const app = next({ dev, hostname, port });

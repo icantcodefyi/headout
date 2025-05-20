@@ -1,9 +1,19 @@
 import { createServer } from 'http';
-import { parse } from 'url';
-import { Server as SocketIOServer } from 'socket.io';
-import next from 'next';
+import { Server as SocketIOServer, Socket } from 'socket.io';
+import { PrismaClient } from '@prisma/client';
 import { z } from 'zod';
-import { db } from './db';
+import dotenv from 'dotenv';
+
+// Load environment variables
+dotenv.config();
+
+// Initialize Prisma client
+const prisma = new PrismaClient();
+
+// Socket.IO server port
+const SOCKET_PORT = parseInt(process.env.SOCKET_PORT || '4000', 10);
+// Allow custom host for cross-origin requests
+const ALLOWED_ORIGINS = process.env.ALLOWED_ORIGINS || '*';
 
 // Define game room types
 interface GameRoom {
@@ -20,9 +30,11 @@ interface Player {
   socketId: string;
   username: string;
   isReady: boolean;
+  isAdmin?: boolean;
   score: number;
   correctAnswers: number;
   wrongAnswers: number;
+  image?: string;
 }
 
 interface DestinationData {
@@ -36,6 +48,23 @@ interface AnswerOption {
   country: string;
 }
 
+interface Destination {
+  id: string;
+  city: string;
+  country: string;
+  clues: string[];
+  funFacts: string[];
+  trivia: string[];
+  cdnImageUrl?: string;
+}
+
+interface AnswerResult {
+  playerId: string;
+  isCorrect: boolean;
+  destination: Destination;
+  fact: string;
+}
+
 // Active game rooms
 const gameRooms = new Map<string, GameRoom>();
 
@@ -46,6 +75,7 @@ const joinRoomSchema = z.object({
   username: z.string(),
   userId: z.string().optional(),
   isAdmin: z.boolean().optional(),
+  image: z.string().optional(),
 });
 
 const answerSchema = z.object({
@@ -54,8 +84,13 @@ const answerSchema = z.object({
   answerId: z.string(),
 });
 
+// Type for the join room data
+type JoinRoomData = z.infer<typeof joinRoomSchema>;
+// Type for the answer data
+type AnswerData = z.infer<typeof answerSchema>;
+
 // Prepare game helper function
-async function prepareGame(io: SocketIOServer, room: GameRoom) {
+async function prepareGame(io: SocketIOServer, room: GameRoom): Promise<boolean> {
   try {
     console.log(`Preparing game for room: ${room.id}`);
     
@@ -65,7 +100,7 @@ async function prepareGame(io: SocketIOServer, room: GameRoom) {
     
     // Fetch random destinations from the database
     console.log('Fetching destinations from database...');
-    const destinations = await db.destination.findMany({
+    const destinations = await prisma.destination.findMany({
       select: {
         id: true,
         city: true,
@@ -80,7 +115,7 @@ async function prepareGame(io: SocketIOServer, room: GameRoom) {
         // Use random ordering for better variety
         id: 'asc',
       },
-    });
+    }) as Destination[];
     
     console.log(`Found ${destinations.length} destinations`);
     
@@ -107,7 +142,7 @@ async function prepareGame(io: SocketIOServer, room: GameRoom) {
     };
     
     // Create options from all destinations
-    const options: AnswerOption[] = destinations.map(dest => ({
+    const options: AnswerOption[] = destinations.map((dest: Destination) => ({
       id: dest.id,
       city: dest.city,
       country: dest.country,
@@ -139,36 +174,27 @@ async function prepareGame(io: SocketIOServer, room: GameRoom) {
   }
 }
 
-// Initialize socket server with Next.js
-export function initializeSocketServer() {
-  // Socket.IO server will run on port 4000
-  const SOCKET_PORT = parseInt(process.env.SOCKET_PORT || '4000', 10);
-  
+// Initialize Socket.IO server
+function startSocketServer(): SocketIOServer {
   // Create HTTP server for Socket.IO
   const server = createServer();
   
   // Initialize Socket.IO server
   const io = new SocketIOServer(server, {
     cors: {
-      origin: '*',
+      origin: ALLOWED_ORIGINS,
       methods: ['GET', 'POST'],
     },
   });
   
   // Socket.IO event handlers
-  io.on('connection', (socket) => {
+  io.on('connection', (socket: Socket) => {
     console.log(`Client connected: ${socket.id}`);
     
     // Create or join a game room
-    socket.on('join_room', async (data) => {
+    socket.on('join_room', async (data: JoinRoomData) => {
       try {
-        const { roomId, playerId, username, userId, isAdmin } = joinRoomSchema.parse(data);
-        
-        // Require userId for authentication
-        if (!userId) {
-          socket.emit('error', { message: 'Authentication required - please sign in' });
-          return;
-        }
+        const { roomId, playerId, username, userId, isAdmin, image } = joinRoomSchema.parse(data);
         
         // Create new room or join existing
         let room: GameRoom;
@@ -184,9 +210,9 @@ export function initializeSocketServer() {
           }
           
           // Check if player already in room
-          if (room.players.some(p => p.id === playerId)) {
+          if (room.players.some((p: Player) => p.id === playerId)) {
             // Reconnect existing player
-            const playerIndex = room.players.findIndex(p => p.id === playerId);
+            const playerIndex = room.players.findIndex((p: Player) => p.id === playerId);
             if (playerIndex !== -1 && room.players[playerIndex]) {
               room.players[playerIndex].socketId = socket.id;
             }
@@ -209,6 +235,7 @@ export function initializeSocketServer() {
             score: 0,
             correctAnswers: 0,
             wrongAnswers: 0,
+            image,
           };
           
           room.players.push(newPlayer);
@@ -229,9 +256,11 @@ export function initializeSocketServer() {
                 socketId: socket.id,
                 username,
                 isReady: false,
+                isAdmin: isAdmin || true,
                 score: 0,
                 correctAnswers: 0,
                 wrongAnswers: 0,
+                image,
               },
             ],
             currentDestination: null,
@@ -256,48 +285,37 @@ export function initializeSocketServer() {
     });
     
     // Player ready event
-    socket.on('player_ready', async ({ roomId, playerId }) => {
+    socket.on('player_ready', ({ roomId, playerId }: { roomId: string; playerId: string }) => {
       const room = gameRooms.get(roomId);
-      if (!room) {
-        console.log(`Room ${roomId} not found for player ${playerId}`);
-        return;
-      }
+      if (!room) return;
       
-      const playerIndex = room.players.findIndex(p => p.id === playerId);
-      if (playerIndex === -1) {
-        console.log(`Player ${playerId} not found in room ${roomId}`);
-        return;
-      }
+      const playerIndex = room.players.findIndex((p: Player) => p.id === playerId);
+      if (playerIndex === -1) return;
       
       const player = room.players[playerIndex];
       if (!player) return;
       
-      console.log(`Player ${player.username} (${playerId}) is ready in room ${roomId}`);
       player.isReady = true;
       
-      // Check if all players are ready (just for logging)
-      const allReady = room.players.every(p => p.isReady);
-      console.log(`All players ready: ${allReady}. Player count: ${room.players.length}`);
-      
-      // Note: We're removing the auto-start game code here
+      // Remove auto-start game logic
       // The game will only start when the admin explicitly calls next_question
       
       io.to(roomId).emit('room_update', room);
     });
     
     // Player submits an answer
-    socket.on('submit_answer', async (data) => {
+    socket.on('submit_answer', async (data: AnswerData) => {
       try {
         const { roomId, playerId, answerId } = answerSchema.parse(data);
         
         const room = gameRooms.get(roomId);
         if (!room || !room.currentDestination) return;
         
-        const playerIndex = room.players.findIndex(p => p.id === playerId);
+        const playerIndex = room.players.findIndex((p: Player) => p.id === playerId);
         if (playerIndex === -1) return;
         
         const player = room.players[playerIndex];
-        const destination = await db.destination.findUnique({
+        const destination = await prisma.destination.findUnique({
           where: { id: room.currentDestination.id },
           select: {
             id: true,
@@ -307,7 +325,7 @@ export function initializeSocketServer() {
             trivia: true,
             cdnImageUrl: true,
           },
-        });
+        }) as Destination | null;
         
         if (!destination) return;
         
@@ -328,17 +346,19 @@ export function initializeSocketServer() {
           : "Interesting place to visit!";
         
         // Emit result to all players in the room
-        io.to(roomId).emit('answer_result', {
+        const result: AnswerResult = {
           playerId,
           isCorrect,
           destination,
           fact: randomFact,
-        });
+        };
+        
+        io.to(roomId).emit('answer_result', result);
         
         // If this is a multiplayer game, move to the next round
         if (room.players.length > 1) {
-          setTimeout(async () => {
-            await prepareGame(io, room);
+          setTimeout(() => {
+            prepareGame(io, room);
           }, 3000);
         }
         
@@ -349,7 +369,7 @@ export function initializeSocketServer() {
     });
     
     // Next question request
-    socket.on('next_question', async ({ roomId }) => {
+    socket.on('next_question', async ({ roomId }: { roomId: string }) => {
       console.log(`Next question requested for room: ${roomId}`);
       
       if (!roomId || !gameRooms.has(roomId)) {
@@ -372,11 +392,11 @@ export function initializeSocketServer() {
     });
     
     // Player leaves the game
-    socket.on('leave_room', ({ roomId, playerId }) => {
+    socket.on('leave_room', ({ roomId, playerId }: { roomId: string; playerId: string }) => {
       const room = gameRooms.get(roomId);
       if (!room) return;
       
-      const playerIndex = room.players.findIndex(p => p.id === playerId);
+      const playerIndex = room.players.findIndex((p: Player) => p.id === playerId);
       if (playerIndex !== -1) {
         room.players.splice(playerIndex, 1);
         
@@ -399,7 +419,7 @@ export function initializeSocketServer() {
       
       // Find rooms where this socket is a player
       gameRooms.forEach((room, roomId) => {
-        const playerIndex = room.players.findIndex(p => p.socketId === socket.id);
+        const playerIndex = room.players.findIndex((p: Player) => p.socketId === socket.id);
         
         if (playerIndex !== -1) {
           // Mark player as disconnected but keep in room for reconnection
@@ -412,11 +432,11 @@ export function initializeSocketServer() {
           setTimeout(() => {
             const currentRoom = gameRooms.get(roomId);
             if (currentRoom) {
-              const player = currentRoom.players.find(p => p.socketId === socket.id);
+              const player = currentRoom.players.find((p: Player) => p.socketId === socket.id);
               
               if (player) {
                 // Remove player if they haven't reconnected
-                currentRoom.players = currentRoom.players.filter(p => p.socketId !== socket.id);
+                currentRoom.players = currentRoom.players.filter((p: Player) => p.socketId !== socket.id);
                 
                 if (currentRoom.players.length === 0) {
                   // Delete empty room
@@ -438,5 +458,11 @@ export function initializeSocketServer() {
   server.listen(SOCKET_PORT, () => {
     console.log(`\x1b[36m%s\x1b[0m`, `⚡ Socket.IO server running on port ${SOCKET_PORT}`);
     console.log(`\x1b[33m%s\x1b[0m`, `👉 Connect to WebSocket at ws://localhost:${SOCKET_PORT}`);
+    console.log(`\x1b[32m%s\x1b[0m`, `🔑 ALLOWED_ORIGINS: ${ALLOWED_ORIGINS}`);
   });
-} 
+  
+  return io;
+}
+
+// Start the server
+startSocketServer(); 

@@ -13,6 +13,7 @@ Globetrotter is a fun and engaging full-stack web application where users get cr
 - **"Challenge a Friend" Feature**: Generate shareable challenge links to compete with friends
 - **User Profiles**: Create a unique username to save scores and track your progress
 - **Mobile Responsive**: Fully optimized for mobile and desktop devices
+- **Multiplayer Mode**: Play with friends in real-time via Socket.IO
 
 ## 🔹 Tech Stack
 
@@ -21,6 +22,14 @@ Globetrotter is a fun and engaging full-stack web application where users get cr
 - **Authentication**: NextAuth.js with Google provider
 - **Database**: PostgreSQL
 - **Styling**: TailwindCSS with custom animations and transitions
+- **Real-time Communication**: Socket.IO for multiplayer functionality
+
+## 🔹 Project Structure
+
+The project consists of two main components:
+
+1. **Next.js Application**: The main web application handling the UI, game logic, and database operations
+2. **Socket.IO Server**: A standalone TypeScript server handling real-time multiplayer functionality
 
 ## 🔹 Getting Started
 
@@ -37,17 +46,17 @@ Globetrotter is a fun and engaging full-stack web application where users get cr
    cd globetrotter
    ```
 
-2. Install dependencies:
+2. Install dependencies for both the Next.js app and Socket.IO server:
    ```bash
-   npm install
-   # or
-   pnpm install
-   # or
+   # Install Next.js app dependencies
    bun install
+   
+   # Install Socket.IO server dependencies
+   bun socket:install
    ```
 
 3. Set up environment variables:
-   Create a `.env` file in the root directory with the following variables:
+   Create a `.env` file in the root directory for the Next.js app:
    ```
    # Database URL
    DB_URL="postgresql://username:password@localhost:5432/globetrotter"
@@ -59,6 +68,19 @@ Globetrotter is a fun and engaging full-stack web application where users get cr
    # Google OAuth
    GOOGLE_CLIENT_ID="your-google-client-id"
    GOOGLE_CLIENT_SECRET="your-google-client-secret"
+   
+   # Socket.IO settings
+   SOCKET_URL="http://localhost:4000"
+   NEXT_PUBLIC_SOCKET_URL="http://localhost:4000"
+   ```
+
+   Create a `.env` file in the `backend` directory for the Socket.IO server:
+   ```bash
+   # Copy the example env file
+   cp backend/env.example backend/.env
+   
+   # Edit as needed
+   nano backend/.env
    ```
 
 4. Set up the database:
@@ -67,19 +89,22 @@ Globetrotter is a fun and engaging full-stack web application where users get cr
    ./start-database.sh
    
    # Run Prisma migrations
-   npx prisma migrate dev
+   bun db:migrate
    
    # Seed the database with destinations
-   npx prisma db seed
+   bun db:seed
    ```
 
-5. Start the development server:
+5. Start both servers:
+   
+   **In one terminal (for Next.js app)**:
    ```bash
-   npm run dev
-   # or
-   pnpm dev
-   # or
    bun dev
+   ```
+
+   **In another terminal (for Socket.IO server)**:
+   ```bash
+   bun socket:dev
    ```
 
 6. Open [http://localhost:3000](http://localhost:3000) in your browser to see the application.
@@ -92,6 +117,36 @@ Globetrotter is a fun and engaging full-stack web application where users get cr
    - Correct answer: See confetti animation and learn a fun fact
    - Incorrect answer: See a sad face and still learn something new
 4. Track your score and challenge friends to beat it!
+
+## 🔹 Multiplayer Mode
+
+The multiplayer functionality is powered by a standalone Socket.IO server that can be hosted separately from the main application.
+
+### Deploying the Socket.IO Server
+
+See the [Socket.IO server README](backend/README.md) for detailed deployment instructions.
+
+Quick deployment options:
+
+1. **Manual Deployment**:
+   ```bash
+   cd backend
+   bun build
+   bun start
+   ```
+
+2. **Docker**:
+   ```bash
+   cd backend
+   docker build -t globerotter-socket .
+   docker run -p 4000:4000 --env-file .env globerotter-socket
+   ```
+
+3. **Update your frontend settings**:
+   ```
+   # In your frontend .env
+   NEXT_PUBLIC_SOCKET_URL="http://your-socket-server-domain:4000"
+   ```
 
 ## 🔹 License
 

@@ -3,6 +3,9 @@
 import { createContext, useContext, useEffect, useReducer, type ReactNode } from 'react';
 import { Socket, io } from 'socket.io-client';
 
+// Define SOCKET_URL in the client-side context
+const SOCKET_URL = process.env.NEXT_PUBLIC_SOCKET_URL || 'http://localhost:4000';
+
 // Types
 type Player = {
   id: string;
@@ -180,9 +183,9 @@ export function MultiplayerProvider({ children }: { children: ReactNode }) {
     try {
       dispatch({ type: 'SET_LOADING', payload: true });
       
-      // Connect to the server
-      console.log('Connecting to Socket.IO server at http://localhost:4000...');
-      const socket = io('http://localhost:4000', {
+      // Connect to the server using the environment variable
+      console.log(`Connecting to Socket.IO server at ${SOCKET_URL}...`);
+      const socket = io(SOCKET_URL, {
         timeout: 10000,
         transports: ['websocket', 'polling'],
       });
