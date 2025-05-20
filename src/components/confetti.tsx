@@ -1,15 +1,44 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import ReactConfetti from 'react-confetti';
-import { useWindowSize } from '~/hooks/use-window-size';
+import confetti from 'canvas-confetti';
 import { motion } from 'motion/react';
 
 export function Confetti() {
-  const { width, height } = useWindowSize();
   const [opacity, setOpacity] = useState(1);
 
   useEffect(() => {
+    // Shoot star confetti when component mounts
+    const defaults = {
+      spread: 360,
+      ticks: 50,
+      gravity: 0.25,
+      decay: 0.94,
+      startVelocity: 30,
+      colors: ['#FFC107', '#FF5722', '#4CAF50', '#2196F3', '#9C27B0', '#E91E63'],
+      origin: { y: 0.33 }
+    };
+
+    const shoot = () => {
+      confetti({
+        ...defaults,
+        particleCount: 100,
+        scalar: 1.2,
+        shapes: ["star"],
+      });
+
+      confetti({
+        ...defaults,
+        particleCount: 200,
+        scalar: 0.75,
+        shapes: ["circle"],
+      });
+    };
+
+    shoot();
+    setTimeout(shoot, 100);
+    setTimeout(shoot, 200);
+
     // Fade out the confetti after 2.5 seconds
     const timeout = setTimeout(() => {
       setOpacity(0);
@@ -59,20 +88,6 @@ export function Confetti() {
           </motion.svg>
         </motion.div>
       </div>
-      <ReactConfetti
-        width={width}
-        height={height}
-        recycle={false}
-        numberOfPieces={300}
-        gravity={0.25}
-        colors={['#FFC107', '#FF5722', '#4CAF50', '#2196F3', '#9C27B0', '#E91E63']}
-        confettiSource={{
-          x: width / 2,
-          y: height / 3,
-          w: 0,
-          h: 0
-        }}
-      />
     </div>
   );
 } 
