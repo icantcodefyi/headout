@@ -4,19 +4,13 @@ import { PrismaClient } from '@prisma/client';
 import { z } from 'zod';
 import dotenv from 'dotenv';
 
-// Load environment variables
 dotenv.config();
-
-// Initialize Prisma client
 const prisma = new PrismaClient();
-
-// Socket.IO server port
-// Use PORT from Railway or fallback to SOCKET_PORT or 4000
 const SOCKET_PORT = parseInt(process.env.PORT || process.env.SOCKET_PORT || '4000', 10);
-// Allow custom host for cross-origin requests
+
+
 const ALLOWED_ORIGINS = process.env.ALLOWED_ORIGINS || '*';
 
-// Define game room types
 interface GameRoom {
   id: string;
   players: Player[];
