@@ -6,7 +6,7 @@ WORKDIR /app
 COPY package*.json ./
 
 # Install dependencies
-RUN npm ci
+RUN npm install
 
 # Copy prisma schema
 COPY prisma ./prisma/
@@ -32,7 +32,7 @@ ENV NODE_ENV=production
 COPY package*.json ./
 
 # Install only production dependencies
-RUN npm ci --omit=dev
+RUN npm install --omit=dev
 
 # Copy Prisma client generated files
 COPY --from=builder /app/node_modules/.prisma ./node_modules/.prisma
@@ -45,4 +45,4 @@ COPY --from=builder /app/prisma ./prisma
 EXPOSE 4000
 
 # Start the server
-CMD ["node", "dist/socket-server.js"] 
+CMD ["node", "dist/socket-server.js"]
