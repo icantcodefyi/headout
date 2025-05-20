@@ -42,20 +42,9 @@ export function MultiplayerContent({ username }: MultiplayerContentProps) {
   
   // Initialize Socket.IO and connect to server on mount
   useEffect(() => {
-    const initSocketIO = async () => {
-      try {
-        // Dynamic import to avoid server-side issues
-        const { default: initSocketIOFunc } = await import('~/lib/socketio-init');
-        await initSocketIOFunc();
-        if (!state.socket) {
-          connectToServer();
-        }
-      } catch (error) {
-        console.error('Failed to initialize socket:', error);
-      }
-    };
-    
-    initSocketIO();
+    if (!state.socket) {
+      connectToServer();
+    }
     
     return () => {
       if (state.socket) {
