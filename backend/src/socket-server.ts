@@ -11,7 +11,8 @@ dotenv.config();
 const prisma = new PrismaClient();
 
 // Socket.IO server port
-const SOCKET_PORT = parseInt(process.env.SOCKET_PORT || '4000', 10);
+// Use PORT from Railway or fallback to SOCKET_PORT or 4000
+const SOCKET_PORT = parseInt(process.env.PORT || process.env.SOCKET_PORT || '4000', 10);
 // Allow custom host for cross-origin requests
 const ALLOWED_ORIGINS = process.env.ALLOWED_ORIGINS || '*';
 
@@ -455,9 +456,9 @@ function startSocketServer(): SocketIOServer {
   });
   
   // Start the Socket.IO server
-  server.listen(SOCKET_PORT, () => {
+  server.listen(SOCKET_PORT, '0.0.0.0', () => {
     console.log(`\x1b[36m%s\x1b[0m`, `⚡ Socket.IO server running on port ${SOCKET_PORT}`);
-    console.log(`\x1b[33m%s\x1b[0m`, `👉 Connect to WebSocket at ws://localhost:${SOCKET_PORT}`);
+    console.log(`\x1b[33m%s\x1b[0m`, `👉 Connect to WebSocket at ws://0.0.0.0:${SOCKET_PORT}`);
     console.log(`\x1b[32m%s\x1b[0m`, `🔑 ALLOWED_ORIGINS: ${ALLOWED_ORIGINS}`);
   });
   

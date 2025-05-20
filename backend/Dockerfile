@@ -11,6 +11,7 @@ RUN npm install
 # Copy application code and configuration files
 COPY tsconfig.json .
 COPY src/ ./src/
+COPY prisma/ ./prisma/
 
 # Build TypeScript to JavaScript
 RUN npm run build
@@ -21,8 +22,10 @@ RUN npm prune --production
 # Set environment variables
 ENV NODE_ENV=production
 
-# Expose the Socket.IO port
-EXPOSE 4000
+# Railway automatically sets PORT env variable, make sure we expose that port
+# Default to 4000 for local development
+ENV PORT=4000
+EXPOSE $PORT
 
 # Start the server
 CMD ["node", "dist/socket-server.js"] 
