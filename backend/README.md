@@ -1,16 +1,12 @@
-# Globerotter Socket.IO Server
+# Globetrotter Socket.IO Server
 
-This is the standalone Socket.IO server for the Globerotter multiplayer game functionality, built with TypeScript.
+This is the standalone Socket.IO server for the Globetrotter multiplayer game functionality, built with TypeScript and optimized for Bun.
 
 ## Setup
 
 1. Install dependencies:
    ```bash
    cd backend
-   npm install
-   # or
-   yarn install
-   # or
    bun install
    ```
 
@@ -26,24 +22,12 @@ This is the standalone Socket.IO server for the Globerotter multiplayer game fun
 3. Start the server:
    ```bash
    # Development mode with hot reload
-   npm run dev
-   # or
-   yarn dev
-   # or
    bun dev
    
    # Build TypeScript to JavaScript
-   npm run build
-   # or
-   yarn build
-   # or
    bun build
    
    # Production mode
-   npm start
-   # or
-   yarn start
-   # or
    bun start
    ```
 
@@ -68,21 +52,16 @@ The codebase is written in TypeScript for improved developer experience and type
 You can use Docker to deploy the Socket.IO server:
 
 ```bash
-docker build -t globerotter-socket .
-docker run -p 4000:4000 --env-file .env globerotter-socket
+# Build the Docker image
+docker build -t globetrotter-socket .
+
+# Run the container
+docker run -p 4000:4000 --env-file .env globetrotter-socket
 ```
 
 ### Cloud Platforms
 
 The Socket.IO server can be deployed to various cloud platforms:
-
-#### Heroku
-
-```bash
-heroku create
-heroku config:set DATABASE_URL=your-database-url
-git push heroku main
-```
 
 #### Railway
 
@@ -91,6 +70,30 @@ Deploy directly from GitHub:
 1. Connect your GitHub repository
 2. Set environment variables
 3. Deploy
+
+#### Fly.io
+
+```bash
+# Install Fly CLI if needed
+curl -L https://fly.io/install.sh | sh
+
+# Log in to Fly
+fly auth login
+
+# Launch the app
+fly launch
+
+# Set secrets
+fly secrets set DATABASE_URL="your-database-url"
+```
+
+#### Render
+
+1. Create a new Web Service
+2. Connect your GitHub repository
+3. Set the build command: `cd backend && bun install && bun build`
+4. Set the start command: `cd backend && bun start`
+5. Add environment variables
 
 ## Client Configuration
 

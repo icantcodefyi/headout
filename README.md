@@ -23,26 +23,42 @@ Globetrotter is a fun and engaging full-stack web application where users get cr
 - **Database**: PostgreSQL
 - **Styling**: TailwindCSS with custom animations and transitions
 - **Real-time Communication**: Socket.IO for multiplayer functionality
+- **Runtime**: Bun for improved performance and developer experience
 
 ## 🔹 Project Structure
 
 The project consists of two main components:
 
 1. **Next.js Application**: The main web application handling the UI, game logic, and database operations
-2. **Socket.IO Server**: A standalone TypeScript server handling real-time multiplayer functionality
+2. **Socket.IO Server**: A standalone TypeScript server handling real-time multiplayer functionality (in the `backend` directory)
 
 ## 🔹 Getting Started
 
 ### Prerequisites
 
-- Node.js 18+ and npm/pnpm/bun
+- [Bun](https://bun.sh/) 1.0+ (recommended) or Node.js 18+
 - PostgreSQL database
 
-### Installation
+### Quick Setup
+
+The project includes a setup script that handles installation of dependencies, database migrations, and data seeding:
+
+```bash
+# Clone the repository
+git clone https://github.com/yourusername/globetrotter.git
+cd globetrotter
+
+# Run the setup script
+bun setup
+```
+
+### Manual Installation
+
+If you prefer to run each step manually:
 
 1. Clone the repository:
    ```bash
-   git clone <repository-url>
+   git clone https://github.com/yourusername/globetrotter.git
    cd globetrotter
    ```
 
@@ -85,25 +101,21 @@ The project consists of two main components:
 
 4. Set up the database:
    ```bash
-   # Run the database setup script
-   ./start-database.sh
-   
-   # Run Prisma migrations
+   # Run database migrations
    bun db:migrate
    
    # Seed the database with destinations
    bun db:seed
    ```
 
-5. Start both servers:
-   
-   **In one terminal (for Next.js app)**:
-   ```bash
-   bun dev
-   ```
+5. Start the development servers:
 
-   **In another terminal (for Socket.IO server)**:
+   **Start servers separately in different terminals**:
    ```bash
+   # Terminal 1 (for Next.js app)
+   bun dev
+   
+   # Terminal 2 (for Socket.IO server)
    bun socket:dev
    ```
 
@@ -147,6 +159,19 @@ Quick deployment options:
    # In your frontend .env
    NEXT_PUBLIC_SOCKET_URL="http://your-socket-server-domain:4000"
    ```
+
+## 🔹 Development Commands
+
+- `bun dev` - Start the Next.js development server
+- `bun socket:dev` - Start the Socket.IO development server
+- `bun dev:full` - Start both servers simultaneously
+- `bun build` - Build the Next.js application
+- `bun socket:build` - Build the Socket.IO server
+- `bun start` - Start the production Next.js server
+- `bun socket:start` - Start the production Socket.IO server
+- `bun db:migrate` - Apply database migrations
+- `bun db:seed` - Seed the database with initial data
+- `bun db:studio` - Open Prisma Studio to manage database data
 
 ## 🔹 License
 
