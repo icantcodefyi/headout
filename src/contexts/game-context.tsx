@@ -23,6 +23,7 @@ type GameState = {
   currentDestination: { id: string; clues: string[] } | null;
   options: AnswerOption[] | null;
   selectedAnswer: string | null;
+  visibleClues: number;
   result: {
     isCorrect: boolean;
     destination: Destination | null;
@@ -51,6 +52,7 @@ type GameAction =
   | { type: "SELECT_ANSWER"; payload: string }
   | { type: "SET_RESULT"; payload: { isCorrect: boolean; destination: Destination; fact: string } }
   | { type: "NEXT_QUESTION" }
+  | { type: "REVEAL_NEXT_CLUE"; payload: number }
   | { type: "SET_CHALLENGE"; payload: { id: string; challenger: { username: string; totalScore: number; correctCount: number; wrongCount: number } } };
 
 const initialState: GameState = {
@@ -58,6 +60,7 @@ const initialState: GameState = {
   currentDestination: null,
   options: null,
   selectedAnswer: null,
+  visibleClues: 1,
   result: null,
   score: {
     correct: 0,
@@ -83,6 +86,7 @@ function gameReducer(state: GameState, action: GameAction): GameState {
         currentDestination: action.payload,
         selectedAnswer: null,
         result: null,
+        visibleClues: 1, // Reset visible clues for new destination
       };
     
     case "SET_OPTIONS":
@@ -116,6 +120,13 @@ function gameReducer(state: GameState, action: GameAction): GameState {
         options: null,
         selectedAnswer: null,
         result: null,
+        visibleClues: 1, // Reset visible clues for next question
+      };
+    
+    case "REVEAL_NEXT_CLUE":
+      return {
+        ...state,
+        visibleClues: action.payload,
       };
     
     case "SET_CHALLENGE":

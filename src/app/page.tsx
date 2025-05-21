@@ -419,7 +419,7 @@ export default function Home() {
 								</CardHeader>
 								<CardContent className="space-y-4">
 									<div className="rounded-lg bg-muted p-4 text-sm shadow-inner">
-										{state.currentDestination.clues.map((clue, index) => (
+										{state.currentDestination.clues.slice(0, state.visibleClues).map((clue, index) => (
 											<p key={index} className={cn("mb-2", index > 0 && "mt-3")}>
 												<span className="mr-2 inline-flex h-6 w-6 items-center justify-center rounded-full bg-primary/10 text-xs font-medium text-primary">
 													{index + 1}
@@ -427,6 +427,19 @@ export default function Home() {
 												{clue}
 											</p>
 										))}
+										{state.visibleClues < state.currentDestination.clues.length && (
+											<Button 
+												variant="ghost" 
+												size="sm" 
+												onClick={() => dispatch({ 
+													type: 'REVEAL_NEXT_CLUE', 
+													payload: state.visibleClues + 1 
+												})}
+												className="mt-2 w-full border border-dashed border-primary/20 text-xs text-muted-foreground hover:border-primary/50 hover:text-primary"
+											>
+												Reveal next hint
+											</Button>
+										)}
 									</div>
 									<div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
 										{state.options.map((option) => (
