@@ -1,7 +1,6 @@
-import { PrismaClient } from "@prisma/client";
+import { writeFile } from 'fs/promises';
 
-const prisma = new PrismaClient();
-
+// The dataset extracted from prisma/seed.ts
 const destinationsData = [
   {
     city: "Paris",
@@ -1993,36 +1992,47 @@ const destinationsData = [
     cdnImageUrl: "https://i.pinimg.com/736x/e4/9e/3d/e49e3d376cbdf5556c5280a547d2716a.jpg",
   },
 ];
+  
 
-async function main() {
-  console.log(`Start seeding ...`);
+// Extract only the city names
+const cityNames = destinationsData.map(destination => destination.city);
 
-  try {
-    // Clear existing data
-    await prisma.$transaction([
-      prisma.$executeRaw`TRUNCATE TABLE "GameSession" CASCADE`,
-      prisma.$executeRaw`TRUNCATE TABLE "Destination" CASCADE`,
-    ]);
+// Print the city names
+console.log('City names:');
+console.log(cityNames);
 
-    for (const destination of destinationsData) {
-      const result = await prisma.destination.create({
-        data: destination,
-      });
-      console.log(`Created destination with ID: ${result.id}`);
-    }
-
-    console.log(`Seeding finished.`);
-  } catch (error) {
-    console.error("Error during seeding:", error);
-  }
+// Check for duplicate city names
+const duplicateCities = findDuplicates(cityNames);
+if (duplicateCities.length > 0) {
+  console.log('\nRepeating city names:');
+  console.log(duplicateCities);
+} else {
+  console.log('\nNo repeating city names found.');
 }
 
-main()
-  .then(async () => {
-    await prisma.$disconnect();
-  })
-  .catch(async (e) => {
-    console.error(e);
-    await prisma.$disconnect();
-    process.exit(1);
-  });
+// Function to find duplicates in an array
+function findDuplicates(array) {
+  const counts = {};
+  const duplicates = [];
+  
+  for (const item of array) {
+    counts[item] = (counts[item] || 0) + 1;
+    if (counts[item] === 2) {
+      duplicates.push(item);
+    }
+  }
+  
+  return duplicates;
+}
+
+// Write city names to a file
+await writeFile('city-names.json', JSON.stringify(cityNames, null, 2));
+
+// Write duplicate city names to a separate file if any exist
+if (duplicateCities.length > 0) {
+  await writeFile('duplicate-cities.json', JSON.stringify(duplicateCities, null, 2));
+  console.log('City names have been extracted and saved to city-names.json');
+  console.log('Duplicate city names have been saved to duplicate-cities.json');
+} else {
+  console.log('City names have been extracted and saved to city-names.json');
+} 
